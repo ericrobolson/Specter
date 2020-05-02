@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 specter = {path = "../specter"}
-
+specs = "0.16.1"
 
 [build-dependencies]
 specter = {path = "../specter"}

@@ -51,14 +51,29 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn to_rust(&self) -> String {
-        let mut s = format!("pub struct {}Component {{", self.name.to_title_case());
+    pub fn rust_name(&self) -> String {
+        return format!("{}Component", self.name.to_title_case());
+    }
+
+    pub fn rust_module(&self) -> String {
+        return format!("{}_component", self.name);
+    }
+
+    pub fn to_rust_definition(&self) -> String {
+        let mut s = format!("pub struct {} {{", self.rust_name());
 
         for prop in &self.properties {
             s = format!("{}\n\tpub {}: {},", s, prop.name, prop.kind.to_rust());
         }
 
-        let s = format!("{}\n}}\n", s);
+        let s = format!("{}\n}}", s);
+
+        let specs_def = format!(
+            "impl Component for {} {{\n\ttype Storage = VecStorage<Self>;\n}}",
+            self.rust_name()
+        );
+
+        let s = format!("{}\n\n{}", s, specs_def);
 
         return s;
     }

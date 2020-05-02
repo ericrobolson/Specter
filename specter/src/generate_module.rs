@@ -8,15 +8,14 @@ use super::file_sys::*;
 
 use super::build_components::{Component, Property};
 
-const COMPONENT_FILE_PATH: &'static str = "src/specter";
-
 pub fn gen_module() {
-    let f = File::create(format!("{}/mod.rs", COMPONENT_FILE_PATH)).unwrap();
+    let f = File::create(format!("{}/mod.rs", BASE_DIRECTORY())).unwrap();
     let mut file = LineWriter::new(f);
 
-    prepend_header(&mut file);
+    init_file(&mut file);
 
     file.write_all(b"pub mod components;\n").unwrap();
+    file.write_all(b"pub mod systems;\n").unwrap();
 
     file.flush().unwrap();
 }
