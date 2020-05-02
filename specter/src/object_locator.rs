@@ -21,7 +21,7 @@ pub fn locate_objects() -> Vec<SpecterFileObject> {
     return objects_found;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ObjectTypes {
     Component,
     System,
