@@ -1,0 +1,25 @@
+# Stored in a .comp file
+
+
+##########################
+# Some example components:
+##########################
+component-velocity: # note: 'component-' means that this is the struct definition
+    value: vec2
+
+component-position:
+    value: vec2
+
+component-hitpoints:
+    value: number
+    max: number
+
+component-fire_particle:
+    radius: number
+
+component-aabb:
+    min: vector2
+    max: vector2
+    fn overlaps(other: aabb) = bool:
+        # if overlapping...
+        return true

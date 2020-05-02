@@ -1,0 +1,39 @@
+system-physics:
+    # dependants?
+
+    # note: c.velocity means "read velocity component", w-c.position means "write position component"    
+    (velocity: c.velocity, position: w-c.position): # this statement means do a join on all entitites that have a position + velocity
+        position.value += velocity.value
+
+        inline-rust{
+            //Now we're in rust land. This code is directly compiled into rust.
+            println!("Hello world! Wassup");
+        }
+
+
+    # note: c?.velocity means "read optional velocity component", w-c.position means "write position component"    
+    (velocity: c?.velocity, position: w-c.position):
+        if velocity: # optional components may evaluate to true if they exist
+            position.value += velocity.value
+        else: # optional components will evaluate to false if they don't
+            position.value = position.value
+
+    # Example of adding a component to the entity:
+    (position: c.position, hitpoints: w-c.hitpoints?, e: w-entity): # the last argument states that we'll be writing to the entity
+        if !hitpoints:
+            e.add(c.hitpoints)
+        else if hitpoints.value == 0:
+            e.add(c.cleanup) # add the component for removal
+
+    # Example of adding a new entity if aabbs overlap:
+    (p1: c.position, aabb1: c.aabb, e1: w-entity):
+        # now we loop over the entities again:
+        (p2: c.position, aabb2: c.aabb, e2: w-entity): 
+            if e1 != e2: # if the entities aren't the same
+                if aabb1.overlaps(aabb2):
+                    assemble-particle(c.velocity.new(..), c.position.new(..), c.fire_particle.new(..))) # creates a new particle
+                    
+                    e1.add(SOMECOLLISION_INFO_COMPONENT)
+                    e2.add(SOMECOLLISION_INFO_COMPONENT)
+                    
+
