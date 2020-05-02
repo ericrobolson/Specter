@@ -12,10 +12,11 @@ pub fn gen_module() {
     let f = File::create(format!("{}/mod.rs", BASE_DIRECTORY())).unwrap();
     let mut file = LineWriter::new(f);
 
-    init_file(&mut file);
+    prepend_header(&mut file);
 
     file.write_all(b"pub mod components;\n").unwrap();
     file.write_all(b"pub mod systems;\n").unwrap();
+    file.write_all(b"pub mod types;\n").unwrap();
 
     file.flush().unwrap();
 }

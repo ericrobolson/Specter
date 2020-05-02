@@ -16,12 +16,16 @@ pub fn SYSTEM_DIRECTORY() -> String {
     return format!("{}/systems", BASE_DIRECTORY());
 }
 
+pub fn TYPES_DIRECTORY() -> String {
+    return format!("{}/types", BASE_DIRECTORY());
+}
+
 pub fn init_file(writer: &mut std::io::LineWriter<std::fs::File>) {
     prepend_header(writer);
     add_includes(writer);
 }
 
-fn prepend_header(writer: &mut std::io::LineWriter<std::fs::File>) {
+pub fn prepend_header(writer: &mut std::io::LineWriter<std::fs::File>) {
     writer
         .write_all(b"//THIS IS A GENERATED FILE AND SHOULD NOT BE MODIFIED BY HAND\n")
         .unwrap();
