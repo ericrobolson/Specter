@@ -4,8 +4,8 @@ mod file_sys;
 mod generate_components;
 mod generate_module;
 mod generate_systems;
+mod generate_types;
 mod object_locator;
-
 use std::fs;
 use std::path::Path;
 
@@ -19,6 +19,8 @@ pub fn build() {
 
     let components = build_components::build(&objects_found);
     let systems = build_systems::build(&objects_found);
+
+    generate_types::generate();
 
     generate_components::generate(&components);
     generate_systems::generate(&systems);

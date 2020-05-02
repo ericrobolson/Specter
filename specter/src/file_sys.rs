@@ -29,4 +29,7 @@ fn prepend_header(writer: &mut std::io::LineWriter<std::fs::File>) {
 
 fn add_includes(writer: &mut std::io::LineWriter<std::fs::File>) {
     writer.write_all(b"use specs::prelude::*;\n").unwrap();
+    writer
+        .write_all(b"use crate::specter_gen::types::*;\n")
+        .unwrap();
 }
