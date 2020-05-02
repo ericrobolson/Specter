@@ -6,9 +6,11 @@ use std::io::prelude::*;
 use std::io::{self, BufRead, LineWriter};
 use std::path::Path;
 
+use super::file_sys::*;
+
 use inflector::Inflector;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PropertyType {
     Number,
     Vec2,
@@ -38,13 +40,13 @@ impl PropertyType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Property {
     pub name: String,
     pub kind: PropertyType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Component {
     pub name: String,
     pub properties: Vec<Property>,
@@ -146,12 +148,4 @@ pub fn build(objects: &Vec<SpecterFileObject>) -> Vec<Component> {
     }
 
     return components;
-}
-
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
 }

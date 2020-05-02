@@ -1,0 +1,4 @@
+physics:
+    (velocity: c.velocity, position: c-w.position):
+        position.value += velocity.value
+

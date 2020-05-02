@@ -25,9 +25,22 @@ pub fn init_file(writer: &mut std::io::LineWriter<std::fs::File>) {
     add_includes(writer);
 }
 
+fn box_str(s: &str) -> String {
+    let s = format!("// {} //", s);
+
+    let mut padding = String::new();
+    for _ in s.chars() {
+        padding.push('/');
+    }
+
+    return format!("{}\n{}\n{}\n", padding, s, padding);
+}
+
 pub fn prepend_header(writer: &mut std::io::LineWriter<std::fs::File>) {
     writer
-        .write_all(b"//THIS IS A GENERATED FILE AND SHOULD NOT BE MODIFIED BY HAND\n")
+        .write_all(
+            box_str("THIS IS A GENERATED FILE AND SHOULD NOT BE MODIFIED BY HAND").as_bytes(),
+        )
         .unwrap();
 }
 
@@ -36,4 +49,12 @@ fn add_includes(writer: &mut std::io::LineWriter<std::fs::File>) {
     writer
         .write_all(b"use crate::specter_gen::types::*;\n")
         .unwrap();
+}
+
+pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where
+    P: AsRef<Path>,
+{
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }

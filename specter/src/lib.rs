@@ -18,7 +18,7 @@ pub fn build() {
     let objects_found = object_locator::locate_objects();
 
     let components = build_components::build(&objects_found);
-    let systems = build_systems::build(&objects_found);
+    let systems = build_systems::build(&objects_found, &components);
 
     generate_types::generate();
 

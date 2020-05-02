@@ -10,33 +10,29 @@ use super::file_sys::*;
 pub fn generate(systems: &Vec<System>) {
     fs::create_dir_all(format!("{}", SYSTEM_DIRECTORY())).unwrap();
 
-    /*
-    for component in components {
-        gen_component(component);
+    for system in systems {
+        gen_system(system);
     }
-    */
 
     gen_module(systems);
 }
-/*
-fn gen_component(component: &Component) {
-    let f = File::create(format!(
-        "{}/{}_component.rs",
-        COMPONENT_DIRECTORY(),
-        component.name
-    ))
-    .unwrap();
+
+fn gen_system(system: &System) {
+    let f = File::create(format!("{}/{}_system.rs", SYSTEM_DIRECTORY(), system.name)).unwrap();
 
     let mut file = LineWriter::new(f);
 
     init_file(&mut file);
 
-    file.write_all(component.to_rust_definition().as_bytes())
+    file.write_all(system.rust_dependencies().as_bytes())
+        .unwrap();
+
+    file.write_all(system.to_rust_definition().as_bytes())
         .unwrap();
 
     file.flush().unwrap();
 }
-*/
+
 fn gen_module(systems: &Vec<System>) {
     let f = File::create(format!("{}/mod.rs", SYSTEM_DIRECTORY())).unwrap();
     let mut file = LineWriter::new(f);
