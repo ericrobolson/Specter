@@ -36,12 +36,23 @@ fn box_str(s: &str) -> String {
     return format!("{}\n{}\n{}\n", padding, s, padding);
 }
 
+fn center(chars_in_line: usize, s: &str) -> String {
+    let mut s = String::from(s);
+
+    let pad_len = chars_in_line / 4;
+
+    for i in 0..pad_len {
+        s.insert(0, ' ');
+        s.push(' ');
+    }
+
+    return s;
+}
+
 pub fn prepend_header(writer: &mut std::io::LineWriter<std::fs::File>) {
-    writer
-        .write_all(
-            box_str("THIS IS A GENERATED FILE AND SHOULD NOT BE MODIFIED BY HAND").as_bytes(),
-        )
-        .unwrap();
+    let warning = "THIS IS A GENERATED FILE AND SHOULD NOT BE MODIFIED BY HAND - Specter v0.0.1";
+
+    writer.write_all(box_str(warning).as_bytes()).unwrap();
 }
 
 fn add_includes(writer: &mut std::io::LineWriter<std::fs::File>) {
