@@ -179,7 +179,10 @@ pub fn build(objects: &Vec<SpecterFileObject>, components: &Vec<Component>) -> V
                                     components.iter().find(|c| c.name == component_name);
 
                                 if matched_component.is_none() {
-                                    panic!("Unable to match component with name: '{}'. Available components: {:?}", component_name, components);
+                                    let names: Vec<String> =
+                                        components.iter().map(|c| c.name.clone()).collect();
+
+                                    panic!("Unable to match component with name: '{}'. Available components: {:?}", component_name, names);
                                 }
 
                                 let matched_component = matched_component.unwrap();
