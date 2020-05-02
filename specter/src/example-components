@@ -20,6 +20,3 @@ component-fire_particle:
 component-aabb:
     min: vector2
     max: vector2
-    fn overlaps(other: aabb) = bool:
-        # if overlapping...
-        return true
