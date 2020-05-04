@@ -7,3 +7,6 @@ impl Component for velocity { type Storage = VecStorage<Self>;}
 pub struct hitpoints { pub value: number,pub max: number, }
 impl Component for hitpoints { type Storage = VecStorage<Self>;}
 
+pub struct cleanup {  }
+impl Component for cleanup { type Storage = VecStorage<Self>;}
+

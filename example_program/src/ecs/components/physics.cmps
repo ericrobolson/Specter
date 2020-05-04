@@ -1,3 +1,4 @@
 component position { value vec2(0,0) } 
 component velocity { value vec2(0.0, 0) }
 component hitpoints {value 0, max 100 }
+component cleanup {}

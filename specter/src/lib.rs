@@ -52,7 +52,27 @@ pub fn build() {
     generate_components(&generated_data);
 }
 
-fn validate_generated_data(data: &SpecterData) {}
+fn validate_generated_data(data: &SpecterData) {
+    // Validate the generated components
+    {
+        let mut component_identities: Vec<String> = vec![];
+        for component in &data.components {
+            let exists = (component_identities
+                .iter()
+                .find(|identity| **identity == component.identifier))
+            .is_some();
+
+            if exists {
+                panic!(
+                    "Component '{}' has already been defined!",
+                    component.identifier
+                );
+            }
+
+            component_identities.push(component.identifier.clone());
+        }
+    }
+}
 
 fn generate_components(data: &SpecterData) {
     let mut f = fs::File::create("src/components.rs").unwrap();
