@@ -10,6 +10,11 @@ pub struct SystemComponent {
     pub writeable: bool,
     pub component: Component,
 }
+#[derive(Debug)]
+struct SystemExecuteStatement {
+    pub statement_lines: Vec<String>,
+    pub aliases: Vec<String>,
+}
 
 #[derive(Debug)]
 pub struct System {
@@ -131,6 +136,9 @@ pub fn build(objects: &Vec<SpecterFileObject>, components: &Vec<Component>) -> V
             let mut first_line = true;
             let mut sys_components: Vec<SystemComponent> = vec![];
 
+            let mut execute_statement: Option<SystemExecuteStatement> = None;
+            let mut execute_statements: Vec<SystemExecuteStatement> = vec![];
+
             for line in lines {
                 if let Ok(mut s) = line {
                     s.retain(|c| !c.is_whitespace());
@@ -157,7 +165,11 @@ pub fn build(objects: &Vec<SpecterFileObject>, components: &Vec<Component>) -> V
                             let component_type_def: Vec<&str> = component_type.split('.').collect();
 
                             let writeable = component_type_def[0] == "c-w";
-                            let component_name = component_type_def[1].to_string().replace(')', "");
+                            let component_name = component_type_def[1]
+                                .to_string()
+                                .replace(')', "")
+                                .replace('{', "")
+                                .replace('}', "");
 
                             // Check if it already exists
                             let mut exists = false;

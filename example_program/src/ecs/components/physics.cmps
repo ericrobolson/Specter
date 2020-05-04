@@ -1,0 +1,2 @@
+component position { value vec2(0,0) },
+component velocity { value vec2(0.0, 0) }
