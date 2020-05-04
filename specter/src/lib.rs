@@ -4,7 +4,16 @@ extern crate pest_derive;
 
 use pest::Parser;
 
+mod components;
+use components::Component;
+
+mod systems;
+use systems::System;
+
 mod object_locator;
+
+pub mod string_generator;
+use string_generator::StringGenerator;
 
 use std::fs;
 use std::fs::File;
@@ -15,68 +24,6 @@ use std::path::Path;
 #[derive(Parser)]
 #[grammar = "specter.pest"]
 struct MyParser;
-
-struct StringGenerator {
-    indent_count: usize,
-    value: String,
-}
-impl StringGenerator {
-    pub fn new() -> Self {
-        return Self {
-            indent_count: 0,
-            value: String::new(),
-        };
-    }
-
-    pub fn from_string(value: String) -> Self {
-        let mut gen = Self::new();
-
-        gen.value = value;
-
-        return gen;
-    }
-
-    pub fn indent(&mut self) -> &mut Self {
-        self.indent_count += 1;
-        return self;
-    }
-
-    pub fn unindent(&mut self) -> &mut Self {
-        if 0 < self.indent_count {
-            self.indent_count -= 1;
-        }
-
-        return self;
-    }
-
-    pub fn append(&mut self, value: String) -> &mut Self {
-        self.value += &value;
-
-        return self;
-    }
-
-    pub fn add_lines(&mut self, lines: usize) -> &mut Self {
-        for _ in 0..lines {
-            self.add_line();
-        }
-
-        return self;
-    }
-
-    pub fn add_line(&mut self) -> &mut Self {
-        self.value += "\n";
-
-        for _ in 0..self.indent_count {
-            self.value += "\t";
-        }
-
-        return self;
-    }
-
-    pub fn to_string(&self) -> String {
-        return self.value.clone();
-    }
-}
 
 /// Build the Specter files
 pub fn build() {
@@ -152,35 +99,8 @@ fn validate_generated_data(data: &SpecterData) {
     validate_identifiers(&identifiers);
 }
 
-fn generate_components(data: &SpecterData) {
-    let mut f = fs::File::create("src/components.rs").unwrap();
-    let mut file = LineWriter::new(f);
-
-    let mut generator = StringGenerator::new();
-
-    for component in &data.components {
-        generator.append(component.to_rust());
-        generator.add_lines(2);
-    }
-
-    file.write_all(generator.to_string().as_bytes()).unwrap();
-
-    file.flush().unwrap();
-}
-
-fn generate_systems(data: &SpecterData) {
-    let mut f = fs::File::create("src/systems.rs").unwrap();
-    let mut file = LineWriter::new(f);
-
-    for system in &data.systems {
-        file.write_all(system.to_rust().as_bytes()).unwrap();
-    }
-
-    file.flush().unwrap();
-}
-
 #[derive(Debug)]
-struct SpecterData {
+pub struct SpecterData {
     pub components: Vec<Component>,
     pub systems: Vec<System>,
 }
@@ -200,193 +120,9 @@ impl SpecterData {
 
     pub fn compile(&self) {
         validate_generated_data(&self);
-        generate_components(&self);
-        generate_systems(&self);
+        components::compile(&self);
+        systems::compile(&self);
     }
-}
-
-#[derive(Debug)]
-struct System {
-    identifier: String,
-}
-
-impl System {
-    pub fn new(identifier: String) -> Self {
-        Self {
-            identifier: identifier,
-        }
-    }
-}
-
-impl Rustable for System {
-    fn to_rust(&self) -> String {
-        let mut generator = StringGenerator::new();
-
-        generator
-            .append(format!("pub struct {};", self.identifier()))
-            .add_lines(2)
-            .append(format!("impl<'a> System<'a> for {} ", self.identifier()))
-            .append("{".to_string())
-            // Implementation
-            .indent()
-            .add_line()
-            .append("type SystemData = ();".to_string())
-            .add_lines(2)
-            .append("fn run(&mut self, (): Self::SystemData) {".to_string())
-            .add_line()
-            .append("}".to_string())
-            // End system definition
-            .unindent()
-            .add_line()
-            .append("}".to_string());
-        return generator.to_string();
-    }
-}
-
-impl Identifiable for System {
-    fn identifier(&self) -> String {
-        return self.identifier.clone();
-    }
-}
-
-#[derive(Debug)]
-struct Component {
-    identifier: String,
-    pub properties: Vec<Property>,
-}
-
-impl Component {
-    pub fn new(identifier: String, properties: Vec<Property>) -> Self {
-        return Self {
-            identifier: identifier,
-            properties: properties,
-        };
-    }
-}
-
-impl Rustable for Component {
-    fn to_rust(&self) -> String {
-        let mut generator = StringGenerator::new();
-
-        generator
-            .append(format!("pub struct {} ", self.identifier()))
-            .append("{".to_string())
-            .indent();
-
-        if self.properties.is_empty() == false {
-            for prop in self.properties.iter() {
-                generator
-                    .add_line()
-                    .append(format!("pub {}: {:?},", prop.identifier, prop.prop_type));
-            }
-
-            generator.unindent().add_line();
-        }
-
-        generator.append("}".to_string());
-
-        generator.to_string()
-    }
-}
-
-impl Identifiable for Component {
-    fn identifier(&self) -> String {
-        return self.identifier.clone();
-    }
-}
-
-#[derive(Debug)]
-struct Property {
-    pub identifier: String,
-    pub default_value: String,
-    pub prop_type: Rule,
-}
-
-impl Property {
-    pub fn new(identifier: String, default_value: String, prop_type: Rule) -> Self {
-        return Self {
-            identifier: identifier,
-            default_value: default_value,
-            prop_type: prop_type,
-        };
-    }
-}
-
-fn generate_component(inner_pair: pest::iterators::Pair<'_, Rule>) -> Component {
-    let mut component_identity = None;
-
-    let mut properties = vec![];
-
-    let mut prop_identifier = None;
-
-    for inner in inner_pair.into_inner() {
-        if component_identity.is_none() {
-            component_identity = Some(inner.as_str());
-            continue;
-        }
-
-        if prop_identifier.is_none() {
-            prop_identifier = Some(inner.as_str());
-            continue;
-        }
-
-        let prop_default_value = inner.as_str();
-
-        let mut prop_type = None;
-        for inner in inner.into_inner() {
-            prop_type = Some(inner.as_rule());
-        }
-
-        let property = Property::new(
-            prop_identifier.unwrap().to_string().to_lowercase(),
-            prop_default_value.to_string().to_lowercase(),
-            prop_type.unwrap(),
-        );
-
-        properties.push(property);
-        prop_identifier = None; // Reset the identifiers
-    }
-
-    let component_identity = component_identity.unwrap().to_lowercase();
-
-    return Component::new(component_identity, properties);
-}
-
-fn generate_system(inner_pair: pest::iterators::Pair<'_, Rule>) -> System {
-    let mut identity = None;
-
-    for inner in inner_pair.into_inner() {
-        if identity.is_none() {
-            identity = Some(inner.as_str());
-            continue;
-        }
-        /*
-        if prop_identifier.is_none() {
-            prop_identifier = Some(inner.as_str());
-            continue;
-        }
-
-        let prop_default_value = inner.as_str();
-
-        let mut prop_type = None;
-        for inner in inner.into_inner() {
-            prop_type = Some(inner.as_rule());
-        }
-
-        let property = Property::new(
-            prop_identifier.unwrap().to_string().to_lowercase(),
-            prop_default_value.to_string().to_lowercase(),
-            prop_type.unwrap(),
-        );
-
-        properties.push(property);
-        prop_identifier = None; // Reset the identifiers
-        */
-    }
-
-    let component_identity = identity.unwrap().to_lowercase();
-
-    return System::new(component_identity);
 }
 
 fn parse_specter(contents: String) -> Result<SpecterData, pest::error::Error<Rule>> {
@@ -406,10 +142,10 @@ fn parse_specter(contents: String) -> Result<SpecterData, pest::error::Error<Rul
         for inner_pair in pair.into_inner() {
             match inner_pair.as_rule() {
                 Rule::component => {
-                    generated_components.push(generate_component(inner_pair));
+                    generated_components.push(components::parse_component(inner_pair));
                 }
                 Rule::system => {
-                    generated_systems.push(generate_system(inner_pair));
+                    generated_systems.push(systems::parse_system(inner_pair));
                 }
                 _ => println!("UNIMPLEMENTED!"),
             }
