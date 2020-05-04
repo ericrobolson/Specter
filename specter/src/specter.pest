@@ -16,7 +16,7 @@ identifier = @{ASCII_ALPHA ~ ASCII_ALPHANUMERIC*}
 property = {"." ~ identifier}
 
 component = {(^"component ") ~ identifier ~ "{"	~ ((identifier ~ stype) ~ ("," ~ identifier ~ stype)*)? ~ "}"}
-
+component_def = {(component)*}
 
 native_code = { (!^"end-native" ~ ANY)* } 
 native_call = { ^"native" ~ native_code ~ ^"end-native" } 
@@ -33,12 +33,12 @@ function_arg = {identifier ~ property?}
 
 
 // Expressions and operations
-term = {(identifier ~ property?) | "(" ~ expression ~ ")" | function_call }
+term = {"(" ~ expression ~ ")" | function_call | (identifier ~ property?) }
 operation = {"="}
 expression = {(identifier ~ property) ~ (operation ~ (native_call | term))*}
 
 // Specter keeps each file type separate; e.g. component definitions must be kept from system definitions
-specter = {((component | system | function) ~ (component | system | function)*)?}
+specter = {(component | system)+}
 
-new_line = {"\n"}
-WHITESPACE = _{ " " | "\t" | new_line }
+
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
