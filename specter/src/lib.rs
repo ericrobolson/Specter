@@ -20,6 +20,8 @@ struct MyParser;
 pub fn build() {
     let objects = object_locator::locate_objects();
 
+    let mut generated_data = SpecterData::new(vec![]);
+
     for object in objects {
         if object.path.is_none() {
             continue;
@@ -42,26 +44,18 @@ pub fn build() {
 
         let res = parse_specter(contents);
 
-        let generated_data = res.unwrap();
-        validate_generated_data(&generated_data);
-        generate_components(&generated_data);
+        let mut data = res.unwrap();
+        generated_data.append(&mut data);
     }
+
+    validate_generated_data(&generated_data);
+    generate_components(&generated_data);
 }
 
 fn validate_generated_data(data: &SpecterData) {}
 
 fn generate_components(data: &SpecterData) {
-    let mut f;
-    {
-        let mut options = fs::OpenOptions::new();
-        f = options
-            .read(true)
-            .write(true)
-            .append(true)
-            .create(true)
-            .open("src/components.rs")
-            .unwrap();
-    }
+    let mut f = fs::File::create("src/components.rs").unwrap();
     let mut file = LineWriter::new(f);
 
     for component in &data.components {
@@ -81,6 +75,10 @@ impl SpecterData {
         return Self {
             components: components,
         };
+    }
+
+    pub fn append(&mut self, other: &mut Self) {
+        self.components.append(&mut other.components);
     }
 }
 
