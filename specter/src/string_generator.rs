@@ -54,7 +54,6 @@ impl StringGenerator {
 
         return self;
     }
-
     pub fn to_string(&self) -> String {
         return self.value.clone();
     }

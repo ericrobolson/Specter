@@ -152,6 +152,8 @@ impl SpecterData {
 
         let mut generator = StringGenerator::new();
 
+        generator.append(SpecterData::code_header()).add_line();
+
         for c in crates {
             generator.append(format!("pub mod {};", c)).add_line();
         }
@@ -171,6 +173,9 @@ impl SpecterData {
         components::compile(&self);
         systems::compile(&self);
 
+        // TODO: link world + components
+        // TODO: link dispatchers/systems
+
         Self::compile_module(
             self.base_path().to_string(),
             vec!["systems".to_string(), "components".to_string()],
@@ -179,6 +184,19 @@ impl SpecterData {
 
     pub fn base_path(&self) -> &str {
         return "src/specter_gen";
+    }
+
+    pub fn code_header() -> String {
+        let mut generator = StringGenerator::new();
+
+        generator
+            .append("///////////////////////////////////////////////////////////////".to_string())
+            .add_line()
+            .append("// THIS IS GENERATED CODE AND SHOULD NOT BE MODIFIED BY HAND //".to_string())
+            .add_line()
+            .append("///////////////////////////////////////////////////////////////".to_string())
+            .add_line()
+            .to_string()
     }
 }
 

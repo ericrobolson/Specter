@@ -21,24 +21,8 @@ pub fn locate_objects() -> Vec<SpecterFileObject> {
     return objects_found;
 }
 
-#[derive(Debug, PartialEq)]
-pub enum ObjectTypes {
-    ComponentsDefinition,
-    System,
-}
-
-impl ObjectTypes {
-    fn file_type(&self) -> &str {
-        return match self {
-            ObjectTypes::ComponentsDefinition => ".cmps",
-            ObjectTypes::System => ".sys",
-        };
-    }
-}
-
 #[derive(Debug)]
 pub struct SpecterFileObject {
-    pub kind: ObjectTypes,
     pub path: Option<String>,
 }
 
@@ -51,7 +35,6 @@ impl SpecterFileObject {
                 let path_str = String::from(path_str.unwrap());
 
                 let obj = SpecterFileObject {
-                    kind: ObjectTypes::ComponentsDefinition,
                     path: Some(path_str),
                 };
 

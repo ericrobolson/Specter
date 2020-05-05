@@ -141,8 +141,13 @@ pub fn compile(data: &SpecterData) {
         let mut f = fs::File::create(component_path).unwrap();
         let mut file = LineWriter::new(f);
 
-        file.write_all(component.to_rust_definition().as_bytes())
-            .unwrap();
+        let mut generator = StringGenerator::new();
+        generator
+            .append(SpecterData::code_header())
+            .add_line()
+            .append(component.to_rust_definition());
+
+        file.write_all(generator.to_string().as_bytes()).unwrap();
 
         file.flush().unwrap();
     }
