@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Component {
     identifier: String,
     pub properties: Vec<Property>,
@@ -9,22 +9,26 @@ pub struct Component {
 impl Component {
     pub fn new(identifier: String, properties: Vec<Property>) -> Self {
         return Self {
-            identifier: identifier,
+            identifier: identifier.to_lowercase(),
             properties: properties,
         };
     }
 }
 
 impl Rustable for Component {
-    fn to_rust(&self) -> String {
+    fn to_rust_definition(&self) -> String {
         let mut generator = StringGenerator::new();
 
+        // Add library references
+        generator.append(self.get_library_includes()).add_lines(2);
+
         generator
-            .append(format!("pub struct {} ", self.identifier()))
-            .append("{".to_string())
-            .indent();
+            .append(format!("pub struct {} ", self.rust_struct_name()))
+            .append("{".to_string());
 
         if self.properties.is_empty() == false {
+            generator.indent();
+
             for prop in self.properties.iter() {
                 generator
                     .add_line()
@@ -34,7 +38,32 @@ impl Rustable for Component {
             generator.unindent().add_line();
         }
 
-        return generator.append("}".to_string()).to_string();
+        return generator
+            .append("}".to_string())
+            .add_lines(2)
+            .append("impl Component for ".to_string())
+            .append(self.rust_struct_name())
+            .append(" {".to_string())
+            .indent()
+            .add_line()
+            .append("type Storage = VecStorage<Self>;".to_string())
+            .unindent()
+            .add_line()
+            .append("}".to_string())
+            .to_string();
+    }
+
+    fn rust_struct_name(&self) -> String {
+        return format!("{}Component", self.identifier().to_title_case());
+    }
+
+    fn get_rust_usage(&self) -> String {
+        return format!(
+            "use crate::{}::components::{}::{};",
+            self.root_crate(),
+            self.identifier(),
+            self.rust_struct_name()
+        );
     }
 }
 
@@ -44,7 +73,7 @@ impl Identifiable for Component {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Property {
     pub identifier: String,
     pub default_value: String,
@@ -54,7 +83,7 @@ pub struct Property {
 impl Property {
     pub fn new(identifier: String, default_value: String, prop_type: Rule) -> Self {
         return Self {
-            identifier: identifier,
+            identifier: identifier.to_lowercase(),
             default_value: default_value,
             prop_type: prop_type,
         };
@@ -102,16 +131,22 @@ pub fn parse_component(inner_pair: pest::iterators::Pair<'_, Rule>) -> Component
 }
 
 pub fn compile(data: &SpecterData) {
-    let mut generator = StringGenerator::new();
+    let path = format!("{}/components", data.base_path());
+
+    fs::create_dir_all(path.clone()).unwrap();
 
     for component in &data.components {
-        generator.append(component.to_rust()).add_lines(2);
+        let component_path = format!("{}/{}.rs", path, component.identifier());
+
+        let mut f = fs::File::create(component_path).unwrap();
+        let mut file = LineWriter::new(f);
+
+        file.write_all(component.to_rust_definition().as_bytes())
+            .unwrap();
+
+        file.flush().unwrap();
     }
 
-    let mut f = fs::File::create("src/components.rs").unwrap();
-    let mut file = LineWriter::new(f);
-
-    file.write_all(generator.to_string().as_bytes()).unwrap();
-
-    file.flush().unwrap();
+    let crates = data.components.iter().map(|obj| obj.identifier()).collect();
+    SpecterData::compile_module(path, crates);
 }

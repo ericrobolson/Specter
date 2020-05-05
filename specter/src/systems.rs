@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct System {
     identifier: String,
     pub component_references: Vec<SystemComponentReference>,
@@ -9,41 +9,72 @@ pub struct System {
 impl System {
     pub fn new(identifier: String, component_references: Vec<SystemComponentReference>) -> Self {
         Self {
-            identifier: identifier,
+            identifier: identifier.to_lowercase(),
             component_references: component_references,
+        }
+    }
+
+    pub fn link_components(&mut self, components: &Vec<Component>) {
+        for component_ref in self.component_references.iter_mut() {
+            let matched_component = components
+                .iter()
+                .find(|c| c.identifier() == component_ref.identifier);
+
+            if matched_component.is_none() {
+                panic!("Unable to match component '{}'!", component_ref.identifier);
+            }
+
+            component_ref.component = Some((*matched_component.unwrap()).clone());
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SystemComponentReference {
     pub identifier: String,
     pub writeable: bool,
+    pub component: Option<Component>,
     pub referenced_properties: Vec<String>,
 }
 
 impl SystemComponentReference {
     pub fn new(identifier: String, writeable: bool, referenced_properties: Vec<String>) -> Self {
         return Self {
-            identifier: identifier,
+            identifier: identifier.to_lowercase(),
+            component: None,
             writeable: writeable,
             referenced_properties: referenced_properties,
         };
     }
 
-    pub fn is_writeable(s: &str) -> bool {
+    fn is_writeable(s: &str) -> bool {
         return s.trim().eq("c-w");
     }
 }
 
 impl Rustable for System {
-    fn to_rust(&self) -> String {
+    fn to_rust_definition(&self) -> String {
         let mut generator = StringGenerator::new();
 
+        // Add library references
+        generator.append(self.get_library_includes()).add_lines(2);
+
+        // Add component references
+        for component_ref in &self.component_references {
+            let component = component_ref.component.as_ref().unwrap();
+
+            generator.append(component.get_rust_usage());
+            generator.add_line();
+        }
+
         generator
-            .append(format!("pub struct {};", self.identifier()))
+            .add_line()
+            .append(format!("pub struct {};", self.rust_struct_name()))
             .add_lines(2)
-            .append(format!("impl<'a> System<'a> for {} ", self.identifier()))
+            .append(format!(
+                "impl<'a> System<'a> for {} ",
+                self.rust_struct_name()
+            ))
             .append("{".to_string())
             // Implementation
             .indent()
@@ -52,6 +83,8 @@ impl Rustable for System {
             .indent();
 
         for component_ref in &self.component_references {
+            let component = component_ref.component.as_ref().unwrap();
+
             generator.add_line();
             if component_ref.writeable {
                 generator.append("WriteStorage".to_string());
@@ -60,9 +93,7 @@ impl Rustable for System {
             }
 
             generator.append("<'a, ".to_string());
-
-            generator.append(component_ref.identifier.clone());
-
+            generator.append(component.rust_struct_name());
             generator.append(">,".to_string());
         }
 
@@ -74,10 +105,13 @@ impl Rustable for System {
             .append("fn run(&mut self, (".to_string());
 
         for (i, component_ref) in self.component_references.iter().enumerate() {
+            let component = component_ref.component.as_ref().unwrap();
+
             if component_ref.writeable {
                 generator.append("mut ".to_string());
             }
-            generator.append(component_ref.identifier.clone());
+
+            generator.append(component.pluralized_identifier());
 
             if i < self.component_references.len() - 1 {
                 generator.append(", ".to_string());
@@ -85,7 +119,7 @@ impl Rustable for System {
         }
 
         return generator
-            .append(") : Self::SystemData) {".to_string())
+            .append("): Self::SystemData) {".to_string())
             .add_line()
             .append("}".to_string())
             // End system definition
@@ -93,6 +127,19 @@ impl Rustable for System {
             .add_line()
             .append("}".to_string())
             .to_string();
+    }
+
+    fn rust_struct_name(&self) -> String {
+        return format!("{}System", self.identifier().to_title_case());
+    }
+
+    fn get_rust_usage(&self) -> std::string::String {
+        return format!(
+            "use crate::{}::systems::{}::{};",
+            self.root_crate(),
+            self.identifier(),
+            self.rust_struct_name()
+        );
     }
 }
 
@@ -129,40 +176,28 @@ pub fn parse_system(inner_pair: pest::iterators::Pair<'_, Rule>) -> System {
                     let read_type = splits[0];
                     let component_def = splits[1];
                     let writeable = SystemComponentReference::is_writeable(read_type);
-                    let component_ref =
+                    let mut component_ref =
                         SystemComponentReference::new(component_def.to_string(), writeable, vec![]);
+
+                    let existing_component = component_refs
+                        .iter()
+                        .find(|c| c.identifier == component_ref.identifier);
+
+                    if existing_component.is_some() {
+                        let existing_component = existing_component.unwrap();
+                        // If previously writeable, update current ref to be writeable
+                        if existing_component.writeable && !component_ref.writeable {
+                            component_ref.writeable = true;
+                        }
+
+                        component_refs.retain(|c| c.identifier != component_ref.identifier);
+                    }
 
                     component_refs.push(component_ref);
                 }
                 _ => {}
             }
-
-            //println!("{:?}", inner.as_rule());
-            //println!("{}", inner.as_str());
         }
-
-        /*
-        if prop_identifier.is_none() {
-            prop_identifier = Some(inner.as_str());
-            continue;
-        }
-
-        let prop_default_value = inner.as_str();
-
-        let mut prop_type = None;
-        for inner in inner.into_inner() {
-            prop_type = Some(inner.as_rule());
-        }
-
-        let property = Property::new(
-            prop_identifier.unwrap().to_string().to_lowercase(),
-            prop_default_value.to_string().to_lowercase(),
-            prop_type.unwrap(),
-        );
-
-        properties.push(property);
-        prop_identifier = None; // Reset the identifiers
-        */
     }
 
     component_refs.sort_by(|a, b| a.identifier.partial_cmp(&b.identifier).unwrap());
@@ -171,15 +206,22 @@ pub fn parse_system(inner_pair: pest::iterators::Pair<'_, Rule>) -> System {
 }
 
 pub fn compile(data: &SpecterData) {
-    let mut generator = StringGenerator::new();
+    let path = format!("{}/systems", data.base_path());
+
+    fs::create_dir_all(path.clone()).unwrap();
+
     for system in &data.systems {
-        generator.append(system.to_rust()).add_lines(2);
+        let system_path = format!("{}/{}.rs", path, system.identifier());
+
+        let mut f = fs::File::create(system_path).unwrap();
+        let mut file = LineWriter::new(f);
+
+        file.write_all(system.to_rust_definition().as_bytes())
+            .unwrap();
+
+        file.flush().unwrap();
     }
 
-    let mut f = fs::File::create("src/systems.rs").unwrap();
-    let mut file = LineWriter::new(f);
-
-    file.write_all(generator.to_string().as_bytes()).unwrap();
-
-    file.flush().unwrap();
+    let crates = data.systems.iter().map(|obj| obj.identifier()).collect();
+    SpecterData::compile_module(path, crates);
 }

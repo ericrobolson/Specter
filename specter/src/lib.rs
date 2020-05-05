@@ -10,6 +10,8 @@ use components::Component;
 mod systems;
 use systems::System;
 
+use inflector::Inflector;
+
 mod object_locator;
 
 pub mod string_generator;
@@ -55,10 +57,23 @@ pub fn build() {
 
 pub trait Identifiable {
     fn identifier(&self) -> String;
+    fn pluralized_identifier(&self) -> String {
+        return self.identifier().to_plural();
+    }
 }
 
 pub trait Rustable {
-    fn to_rust(&self) -> String;
+    fn root_crate(&self) -> String {
+        return format!("specter_gen");
+    }
+
+    fn get_library_includes(&self) -> String {
+        return format!("use specs::prelude::*;");
+    }
+
+    fn get_rust_usage(&self) -> String;
+    fn to_rust_definition(&self) -> String;
+    fn rust_struct_name(&self) -> String;
 }
 
 fn validate_identifiers(objects: &Vec<Box<&dyn Identifiable>>) {
@@ -118,10 +133,52 @@ impl SpecterData {
         self.systems.append(&mut other.systems);
     }
 
-    pub fn compile(&self) {
+    pub fn validate(&mut self) {
         validate_generated_data(&self);
+
+        for sys in self.systems.iter_mut() {
+            sys.link_components(&self.components);
+        }
+    }
+
+    pub fn compile_module(path: String, crates: Vec<String>) {
+        let mut crates = crates.clone();
+        crates.sort();
+
+        let module_path = format!("{}/mod.rs", path);
+
+        let mut f = fs::File::create(module_path).unwrap();
+        let mut file = LineWriter::new(f);
+
+        let mut generator = StringGenerator::new();
+
+        for c in crates {
+            generator.append(format!("pub mod {};", c)).add_line();
+        }
+
+        file.write_all(generator.to_string().as_bytes()).unwrap();
+
+        file.flush().unwrap();
+    }
+
+    pub fn compile(&mut self) {
+        self.validate();
+
+        if Path::new(self.base_path()).exists() {
+            fs::remove_dir_all(self.base_path()).unwrap(); // TODO: look into only changing updated files?
+        }
+
         components::compile(&self);
         systems::compile(&self);
+
+        Self::compile_module(
+            self.base_path().to_string(),
+            vec!["systems".to_string(), "components".to_string()],
+        );
+    }
+
+    pub fn base_path(&self) -> &str {
+        return "src/specter_gen";
     }
 }
 

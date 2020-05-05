@@ -1,6 +1,0 @@
-system physics {
-    (velocity: c.velocity, position: c-w.position) {
-       position.value = add(position.value, velocity.value)
-    }
-}
-
