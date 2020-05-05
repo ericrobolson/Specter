@@ -185,7 +185,7 @@ pub fn parse_system(inner_pair: pest::iterators::Pair<'_, Rule>) -> System {
 
                     if existing_component.is_some() {
                         let existing_component = existing_component.unwrap();
-                        // If previously writeable, update current ref to be writeable
+                        // If previously not writeable, update current ref to be writeable
                         if existing_component.writeable && !component_ref.writeable {
                             component_ref.writeable = true;
                         }
