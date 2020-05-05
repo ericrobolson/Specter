@@ -2,6 +2,6 @@
 // THIS IS GENERATED CODE AND SHOULD NOT BE MODIFIED BY HAND //
 ///////////////////////////////////////////////////////////////
 
-pub mod components;
-pub mod data_types;
-pub mod systems;
+
+
+pub struct NumberDataType {}

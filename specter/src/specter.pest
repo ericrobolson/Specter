@@ -15,7 +15,7 @@ stype = {number | vec2 | vec3}
 identifier = @{ASCII_ALPHA ~ ASCII_ALPHANUMERIC*}
 property = {"." ~ identifier}
 
-component = {(^"component ") ~ identifier ~ "{"	~ ((identifier ~ stype) ~ ("," ~ identifier ~ stype)*)? ~ "}"}
+component = {(^"component ") ~ identifier ~ "{"	~ ((identifier ~ ":" ~ identifier) ~ ("," ~ identifier ~ ":" ~ identifier)*)? ~ "}"}
 component_def = {(component)*}
 
 native_code = { (!^"end-native" ~ ANY)* } 

@@ -4,9 +4,11 @@
 
 use specs::prelude::*;
 
+use crate::specter_gen::data_types::number::NumberDataType;
+
 pub struct HitpointsComponent {
-	pub value: number,
-	pub max: number,
+	pub value: NumberDataType,
+	pub max: NumberDataType,
 }
 
 impl Component for HitpointsComponent {

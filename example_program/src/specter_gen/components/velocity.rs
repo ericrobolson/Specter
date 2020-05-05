@@ -4,8 +4,10 @@
 
 use specs::prelude::*;
 
+use crate::specter_gen::data_types::vec2::Vec2DataType;
+
 pub struct VelocityComponent {
-	pub value: vec2,
+	pub value: Vec2DataType,
 }
 
 impl Component for VelocityComponent {

@@ -10,6 +10,9 @@ use components::Component;
 mod systems;
 use systems::System;
 
+mod data_types;
+use data_types::DataType;
+
 use inflector::Inflector;
 
 mod object_locator;
@@ -67,27 +70,33 @@ pub trait Rustable {
         return format!("specter_gen");
     }
 
-    fn get_library_includes(&self) -> String {
-        return format!("use specs::prelude::*;");
+    fn get_library_includes() -> String {
+        let mut generator = StringGenerator::new();
+
+        return generator
+            .append("use specs::prelude::*;".to_string())
+            .add_line()
+            .append("".to_string())
+            .to_string();
     }
 
     fn get_rust_usage(&self) -> String;
     fn to_rust_definition(&self) -> String;
     fn rust_struct_name(&self) -> String;
+
+    fn compile(data: &SpecterData);
 }
 
-fn validate_identifiers(objects: &Vec<Box<&dyn Identifiable>>) {
+fn validate_identifiers(objects: &Vec<String>) {
     let mut identities: Vec<String> = vec![];
     for object in objects {
-        let id = object.identifier();
-
-        let exists = (identities.iter().find(|identity| **identity == id)).is_some();
+        let exists = (identities.iter().find(|identity| **identity == *object)).is_some();
 
         if exists {
-            panic!("Identifier '{}' already in use!", id);
+            panic!("Identifier '{}' already in use!", object);
         }
 
-        identities.push(id);
+        identities.push(object.clone());
     }
 }
 
@@ -95,20 +104,20 @@ fn validate_generated_data(data: &SpecterData) {
     // Validate identifiers
     let mut identifiers = vec![];
     {
-        let mut sys_identifiers: Vec<Box<&dyn Identifiable>> = data
-            .systems
-            .iter()
-            .map(|sys| Box::new(sys as &dyn Identifiable))
-            .collect();
+        let mut sys_identifiers: Vec<String> =
+            data.systems.iter().map(|sys| sys.identifier()).collect();
 
-        let mut component_identifiers: Vec<Box<&dyn Identifiable>> = data
-            .components
-            .iter()
-            .map(|c| Box::new(c as &dyn Identifiable))
-            .collect();
+        let mut component_identifiers: Vec<String> =
+            data.components.iter().map(|c| c.identifier()).collect();
+
+        let mut data_type_identifiers: Vec<String> =
+            data.data_types.iter().map(|d| d.identifier()).collect();
+
+        data_type_identifiers.dedup();
 
         identifiers.append(&mut sys_identifiers);
         identifiers.append(&mut component_identifiers);
+        identifiers.append(&mut data_type_identifiers);
     }
 
     validate_identifiers(&identifiers);
@@ -118,6 +127,7 @@ fn validate_generated_data(data: &SpecterData) {
 pub struct SpecterData {
     pub components: Vec<Component>,
     pub systems: Vec<System>,
+    pub data_types: Vec<DataType>,
 }
 
 impl SpecterData {
@@ -125,23 +135,35 @@ impl SpecterData {
         return Self {
             components: components,
             systems: systems,
+            data_types: vec![],
         };
     }
 
     pub fn append(&mut self, other: &mut Self) {
         self.components.append(&mut other.components);
         self.systems.append(&mut other.systems);
+        self.data_types.append(&mut other.data_types);
     }
 
     pub fn validate(&mut self) {
+        self.data_types.append(&mut vec![
+            DataType::new("number".to_string(), vec![]),
+            DataType::new("vec2".to_string(), vec![]),
+            DataType::new("vec3".to_string(), vec![]),
+        ]);
+
         validate_generated_data(&self);
+
+        for component in self.components.iter_mut() {
+            component.link_data_types(&self.data_types);
+        }
 
         for sys in self.systems.iter_mut() {
             sys.link_components(&self.components);
         }
     }
 
-    pub fn compile_module(path: String, crates: Vec<String>) {
+    pub fn compile_module(path: String, crates: Vec<String>, injectable_code: Option<String>) {
         let mut crates = crates.clone();
         crates.sort();
 
@@ -158,6 +180,13 @@ impl SpecterData {
             generator.append(format!("pub mod {};", c)).add_line();
         }
 
+        if injectable_code.is_some() {
+            let injectable = injectable_code.unwrap();
+
+            generator.add_line();
+            generator.append(injectable);
+        }
+
         file.write_all(generator.to_string().as_bytes()).unwrap();
 
         file.flush().unwrap();
@@ -170,15 +199,20 @@ impl SpecterData {
             fs::remove_dir_all(self.base_path()).unwrap(); // TODO: look into only changing updated files?
         }
 
-        components::compile(&self);
-        systems::compile(&self);
+        DataType::compile(&self);
+        Component::compile(&self);
+        System::compile(&self);
 
-        // TODO: link world + components
         // TODO: link dispatchers/systems
 
         Self::compile_module(
             self.base_path().to_string(),
-            vec!["systems".to_string(), "components".to_string()],
+            vec![
+                "systems".to_string(),
+                "components".to_string(),
+                "data_types".to_string(),
+            ],
+            None,
         );
     }
 

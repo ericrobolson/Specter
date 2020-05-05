@@ -57,7 +57,7 @@ impl Rustable for System {
         let mut generator = StringGenerator::new();
 
         // Add library references
-        generator.append(self.get_library_includes()).add_lines(2);
+        generator.append(Self::get_library_includes()).add_lines(2);
 
         // Add component references
         for component_ref in &self.component_references {
@@ -141,6 +141,32 @@ impl Rustable for System {
             self.rust_struct_name()
         );
     }
+
+    fn compile(data: &SpecterData) {
+        let path = format!("{}/systems", data.base_path());
+
+        fs::create_dir_all(path.clone()).unwrap();
+
+        for system in &data.systems {
+            let system_path = format!("{}/{}.rs", path, system.identifier());
+
+            let mut f = fs::File::create(system_path).unwrap();
+            let mut file = LineWriter::new(f);
+
+            let mut generator = StringGenerator::new();
+            generator
+                .append(SpecterData::code_header())
+                .add_line()
+                .append(system.to_rust_definition());
+
+            file.write_all(generator.to_string().as_bytes()).unwrap();
+
+            file.flush().unwrap();
+        }
+
+        let crates = data.systems.iter().map(|obj| obj.identifier()).collect();
+        SpecterData::compile_module(path, crates, None);
+    }
 }
 
 impl Identifiable for System {
@@ -203,30 +229,4 @@ pub fn parse_system(inner_pair: pest::iterators::Pair<'_, Rule>) -> System {
     component_refs.sort_by(|a, b| a.identifier.partial_cmp(&b.identifier).unwrap());
 
     return System::new(identity.unwrap().to_lowercase(), component_refs);
-}
-
-pub fn compile(data: &SpecterData) {
-    let path = format!("{}/systems", data.base_path());
-
-    fs::create_dir_all(path.clone()).unwrap();
-
-    for system in &data.systems {
-        let system_path = format!("{}/{}.rs", path, system.identifier());
-
-        let mut f = fs::File::create(system_path).unwrap();
-        let mut file = LineWriter::new(f);
-
-        let mut generator = StringGenerator::new();
-        generator
-            .append(SpecterData::code_header())
-            .add_line()
-            .append(system.to_rust_definition());
-
-        file.write_all(generator.to_string().as_bytes()).unwrap();
-
-        file.flush().unwrap();
-    }
-
-    let crates = data.systems.iter().map(|obj| obj.identifier()).collect();
-    SpecterData::compile_module(path, crates);
 }
