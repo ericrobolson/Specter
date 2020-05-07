@@ -1,7 +1,7 @@
 use walkdir::{DirEntry, WalkDir};
 
-/// Traverse through the directories locate relevant files
-pub fn locate_objects(file_type: &'static str) -> Vec<String> {
+/// Traverse through the directories and build the relevant specter files
+pub fn locate_objects() -> Vec<SpecterFileObject> {
     let mut objects_found = vec![];
 
     for entry in WalkDir::new("./")
@@ -11,7 +11,7 @@ pub fn locate_objects(file_type: &'static str) -> Vec<String> {
         let entry = entry.unwrap();
 
         // Source all relevant objects
-        let obj = from_entry(&entry, file_type);
+        let obj = SpecterFileObject::from_entry(&entry);
 
         if obj.is_some() {
             objects_found.push(obj.unwrap());
@@ -21,18 +21,29 @@ pub fn locate_objects(file_type: &'static str) -> Vec<String> {
     return objects_found;
 }
 
-fn from_entry(entry: &DirEntry, file_type: &'static str) -> Option<String> {
-    if is_type(&entry, file_type) {
-        let path_str = entry.path().to_str();
+#[derive(Debug)]
+pub struct SpecterFileObject {
+    pub path: Option<String>,
+}
 
-        if path_str.is_some() {
-            let path_str = String::from(path_str.unwrap());
+impl SpecterFileObject {
+    pub fn from_entry(entry: &DirEntry) -> Option<Self> {
+        if is_type(&entry, ".specter") {
+            let path_str = entry.path().to_str();
 
-            return Some(path_str);
+            if path_str.is_some() {
+                let path_str = String::from(path_str.unwrap());
+
+                let obj = SpecterFileObject {
+                    path: Some(path_str),
+                };
+
+                return Some(obj);
+            }
         }
-    }
 
-    return None;
+        return None;
+    }
 }
 
 fn is_target_dir(entry: &DirEntry) -> bool {

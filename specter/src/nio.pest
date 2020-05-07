@@ -1,0 +1,75 @@
+// Simple DSL for data flow programming
+// Test out on https://pest.rs/#editor
+input_type = {^"i"}
+input = {input_type ~ ":" ~ output_alias }
+input_declaration = { "(" ~ input
+~ ("," ~ input)*
+~ ")"}
+
+output_type = {^"o"}
+output_alias = {identifier}
+output_definition = {output_reference ~ output_alias }
+output_reference = {output_type ~ ":" }
+output_assignment = {output_definition ~ "=" ~ identifier}
+
+message_type = {^"message"}
+message = {message_type ~ ":" ~ identifier ~ "(" ~ ")" }
+
+reserved_words = {
+input_type
+| message_type
+| node_type
+| output_type
+| main_type
+}
+
+output_declaration = {"(" ~ output_assignment ~ ("," ~ output_assignment)* ~ ")" }
+
+execute = {"{" ~ "}"}
+
+// Nodes have the concept of a 'queue'. These are several inputs that may be
+// provided by other nodes. Ex. player input is registered, then is added as
+// an 'o:(id)' output. This output goes directly into a hash table keyed off
+// of the '(id)' of the 'o:(id)' message. The value entry for the hash is a
+// queue of logged messages. Whenever the node is finished with it's current
+// execution, it reads off the queue once all of it's inputs are ready
+// to process. It then executes, and once finished dispatches it's outputs.
+// Continuing off of when player input is registered, what would happen is
+// as follows:
+// 1) OS/main loop polls input, then registers a 'o:mouse_click' output.
+// 2) The UI behavior node, waiting for a 'i:mouse_click' input, fires off
+// 3) The UI behavior node, finished, sends a 'o:btn_was_clkd' output.
+// At the start of the 'main' loop in the
+// program, it goes through and attempts to dispatch
+node_type = {^"node"}
+node = {node_type ~ ":" ~ identifier ~ node_body
+}
+
+node_body = {"{"
+~ input_declaration
+~ execute
+~ output_declaration
+~ "}"}
+
+main_type = {^"main"}
+main = {main_type ~ "{" ~ execute
+~ output_declaration
+~ "}"
+}
+
+// Add in the ability to "fail" a job after X ms or cpu cycles, then
+// abort that execution. However, to fix it, log the inputs at the end of the
+// current input queue? Not sure if that's a great idea, but allows for some
+// 'retryability'.
+// Need to research scheduling mechanisms, and determine simple language.
+
+options = {"priority_number" | "retry_after_X_hz" | "???"}
+
+
+nio = {(main | node)*}
+identifier = @{ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
+
+//number = ${("-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?}
+
+//COMMENT = { "/" ~ (!"/" ~ ANY) ~ "*/" }
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
