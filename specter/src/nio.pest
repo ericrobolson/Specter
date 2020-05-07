@@ -11,6 +11,8 @@ output_alias = {identifier}
 output_definition = {output_reference ~ output_alias }
 output_reference = {output_type ~ ":" }
 output_assignment = {output_definition ~ "=" ~ identifier}
+output_declaration = {"(" ~ output_assignment ~ ("," ~ output_assignment)* ~ ")" }
+
 
 message_type = {^"message"}
 message = {message_type ~ ":" ~ identifier ~ "(" ~ ")" }
@@ -23,7 +25,6 @@ input_type
 | main_type
 }
 
-output_declaration = {"(" ~ output_assignment ~ ("," ~ output_assignment)* ~ ")" }
 
 execute = {"{" ~ "}"}
 
@@ -42,7 +43,8 @@ execute = {"{" ~ "}"}
 // At the start of the 'main' loop in the
 // program, it goes through and attempts to dispatch
 node_type = {^"node"}
-node = {node_type ~ ":" ~ identifier ~ node_body
+node_declaration = {node_type ~ ":" ~ identifier}
+node = {node_declaration ~ node_body
 }
 
 node_body = {"{"

@@ -3,10 +3,9 @@ main {
     (o:heart_beat = true)
 }
 
+
 node: gfx_node {
     (i:heart_beat)
     {}
     (o:gfx_finished = true)
 }
-
-haha

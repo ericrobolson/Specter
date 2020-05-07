@@ -8,6 +8,14 @@ use inflector::Inflector;
 
 mod object_locator;
 
+mod rule_parser;
+
+mod node;
+use node::Node;
+
+mod main_node;
+use main_node::MainNode;
+
 pub mod string_generator;
 use string_generator::StringGenerator;
 
@@ -27,7 +35,7 @@ const file_type: &'static str = ".nio";
 pub fn build() {
     let relevant_files = object_locator::locate_objects(file_type);
 
-    let mut found_language_data = vec![];
+    let mut language_data = LanguageData::new(None, vec![]);
     for p in relevant_files {
         let path = p;
         let contents = fs::read_to_string(path).unwrap();
@@ -36,32 +44,10 @@ pub fn build() {
         if nio.is_err() {
             println!("an err!");
         }
-        println!("not an err?");
 
         let data = nio.unwrap();
-        found_language_data.push(data);
-    }
-}
 
-#[derive(Debug)]
-pub struct Main {}
-
-impl Parsable for Main {
-    fn parse() -> Self {
-        //TODO:
-        println!("Parse main!");
-        Self {}
-    }
-}
-
-#[derive(Debug)]
-pub struct Node {}
-
-impl Parsable for Node {
-    fn parse() -> Self {
-        //TODO:
-        println!("Parse node!");
-        Self {}
+        language_data = language_data.join(&data);
     }
 }
 
@@ -69,20 +55,60 @@ pub trait Parsable
 where
     Self: std::marker::Sized,
 {
-    fn parse() -> Self;
+    fn parse(inner_pair: pest::iterators::Pair<'_, Rule>) -> Self;
 }
 
-#[derive(Debug)]
+pub enum TargetLanguage {
+    Rust,
+}
+
+pub trait Compilable {
+    fn validate(&self);
+    fn compile(&self, target: TargetLanguage);
+}
+
+#[derive(Debug, Clone)]
 pub struct LanguageData {
-    main: Option<Main>,
+    main: Option<MainNode>,
     nodes: Vec<Node>,
 }
+
 impl LanguageData {
-    pub fn new(main: Option<Main>, nodes: Vec<Node>) -> Self {
+    pub fn new(main: Option<MainNode>, nodes: Vec<Node>) -> Self {
         return Self {
             main: main,
             nodes: nodes,
         };
+    }
+
+    fn validate(&self) {
+        unimplemented!();
+    }
+
+    fn compile(&self) {
+        self.validate();
+        unimplemented!();
+    }
+
+    pub fn join(&self, other: &Self) -> Self {
+        if self.main.is_some() && other.main.is_some() {
+            panic!("Only one main may be defined!");
+        }
+
+        let mut main = None;
+        if self.main.is_some() {
+            main = self.main.clone();
+        } else if other.main.is_some() {
+            main = other.main.clone();
+        }
+
+        let mut nodes = self.nodes.clone();
+        nodes.append(&mut other.nodes.clone());
+
+        Self {
+            main: main,
+            nodes: nodes,
+        }
     }
 }
 
@@ -100,10 +126,10 @@ fn parse_nio(contents: String) -> Result<LanguageData, pest::error::Error<Rule>>
                         panic!("Only one main may be defined!");
                     }
 
-                    main = Some(Main::parse());
+                    main = Some(MainNode::parse(inner_pair));
                 }
                 Rule::node => {
-                    nodes.push(Node::parse());
+                    nodes.push(Node::parse(inner_pair));
                 }
                 _ => println!("UNIMPLEMENTED!"),
             }
