@@ -1,7 +1,5 @@
 use super::*;
 
-use super::rule_parser::{Execute, Input, Output};
-
 #[derive(Debug, Clone)]
 pub struct Node {
     pub identifier: String,
@@ -47,13 +45,13 @@ impl Parsable for Node {
                         let rule = i.as_rule();
                         match rule {
                             Rule::input_declaration => {
-                                input = rule_parser::input_declaration(i);
+                                input = Some(Input::parse(i));
                             }
                             Rule::execute => {
-                                execute = rule_parser::execute_stmt(i);
+                                execute = Some(Execute::parse(i));
                             }
                             Rule::output_declaration => {
-                                output = rule_parser::output_declaration(i);
+                                output = Some(Output::parse(i));
                             }
                             _ => {}
                         }
@@ -76,10 +74,32 @@ impl Parsable for Node {
         }
 
         return Self {
-            identifier: identifier,
+            identifier: identifier.to_lowercase(),
             input: input.unwrap(),
             execute: execute.unwrap(),
             output: output.unwrap(),
         };
+    }
+}
+
+impl Compilable for Node {
+    fn link(&self, data: &LanguageData) -> Self {
+        let mut linked = self.clone();
+
+        linked.input = linked.input.link(data);
+
+        return linked;
+    }
+
+    fn compile(&self, target: TargetLanguage, data: &LanguageData) -> String {
+        let mut generator = StringGenerator::new();
+
+        generator.append(format!("node: {}", self.identifier));
+
+        return generator.to_string();
+    }
+
+    fn validate(&self, data: &LanguageData) {
+        // TODO: validate self + all inputs/fields
     }
 }

@@ -1,7 +1,5 @@
 use super::*;
 
-use super::rule_parser::{Execute, Output};
-
 #[derive(Debug, Clone)]
 pub struct MainNode {
     pub execute: Execute,
@@ -21,10 +19,10 @@ impl Parsable for MainNode {
         for i in inner_pair {
             match i.as_rule() {
                 Rule::execute => {
-                    execute = rule_parser::execute_stmt(i);
+                    execute = Some(Execute::parse(i));
                 }
                 Rule::output_declaration => {
-                    output = rule_parser::output_declaration(i);
+                    output = Some(Output::parse(i));
                 }
                 _ => {}
             }
@@ -43,4 +41,19 @@ impl Parsable for MainNode {
             output: output.unwrap(),
         };
     }
+}
+
+impl Compilable for MainNode {
+    fn link(&self, data: &LanguageData) -> Self {
+        self.clone()
+    }
+
+    fn compile(&self, target: TargetLanguage, data: &LanguageData) -> String {
+        let mut generator = StringGenerator::new();
+
+        generator.append("Main Node".to_string());
+
+        return generator.to_string();
+    }
+    fn validate(&self, data: &LanguageData) {}
 }
