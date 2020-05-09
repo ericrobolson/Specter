@@ -57,6 +57,7 @@ println {
     output (_)
     execute {
         /* This is an example comment*/
+        inject {{ println!(print_value); }};
         signal:_ = ();
     }
 }
@@ -105,13 +106,12 @@ output_reference = {output_type }
 output_assignment = {output_definition ~ "=" ~ identifier}
 output_declaration = {(output_type ~ "(" ~ (silent_type | (output_alias ~ ("," ~ output_alias)*)) ~  ")") }
 
-
 // Injected code
 injected_code = { "inject" ~ "{{" ~ (!"}}" ~ ANY)* ~  "}}" }
 
 
 // Execute
-execute = {execute_type ~ "{" ~ (signal)+ ~ injected_code? ~ "}"}
+execute = {execute_type ~ "{" ~ (signal | injected_code)* ~ "}"}
 
 end_statement = { ";"}
 
