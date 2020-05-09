@@ -1,6 +1,7 @@
 // Simple DSL for data flow programming
 // Test out on https://pest.rs/#editor
 
+// !! NOTE: This description needs to be updated, but it's the general idea of Nioe (Node-Input-Output-Execute).
 // Nodes have the concept of a 'queue'. These are several inputs that may be
 // provided by other nodes. Ex. player input is registered, then is added as
 // an 'o:(id)' output. This output goes directly into a hash table keyed off
@@ -16,62 +17,132 @@
 // At the start of the 'main' loop in the
 // program, it goes through and attempts to dispatch
 
+
+/*
+// Example Main:
+main {
+    output (foo, bar)
+    execute {
+        signal:foo = true;
+        signal:bar = "Some String";
+    }
+}
+
+
+// Example Node: 
+foo_bar {
+    input (foo, bar)
+    output (herp, derp)
+    execute {
+        signal: herp = foo;
+                
+        signal: derp = false;    
+    }
+}
+
+
+// Example Node: 
+herp_derper {
+    input (herp, derp)
+    output (fin, core:print_value)
+    execute {        
+        signal: fin = herp;
+        signal: print_value = "Some Derp";
+    }
+}
+
+// Example of how a 'println' node may work
+println {
+    input (print_value)
+    output (_)
+    execute {
+        /* This is an example comment*/
+        signal:_ = ();
+    }
+}
+
+*/
+
 // Types
-input_type = {^"i"}
-output_type = {^"o"}
-node_type = {^"node"}
-main_type = {^"main"}
+input_type = {^"input" | !(^"input") ~ ^"i"}
+output_type = {^"output" | !(^"output") ~ ^"o"}
+execute_type = {^"execute" | !(^"execute") ~ ^"e"}
+main_type = {^"main" | !(^"main") ~ ^"m"}
+signal_type = {^"signal" | !(^"signal") ~ ^"s"}
 
 // Primitives
 number = ${("-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?}
 bool = ${^"true" | ^"false"}
 string = {"\"" ~ (!"\"" ~ ANY)*  ~ "\""}
+reference = {identifier}
+silent_type = {"_"}
+
+primitive = {number | bool | string | reference }
 
 // Reserved words
 reserved_words = {
 input_type
-| node_type
 | output_type
 | main_type
+| signal_type
+| execute_type
 }
 
 // Identifier
 identifier = @{ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
 
+// Namespace
+namespace = {!reserved_words ~ identifier ~ ":" }
+
 // Inputs
-input = {input_type ~ ":" ~ output_alias }
-input_declaration = { "(" ~ input
-~ ("," ~ input)*
-~ ")"}
+input = {output_alias }
+input_declaration = { input_type ~ "(" ~ input ~ ("," ~ input)* ~ ")"}
 
 // Outputs
 output_alias = {identifier}
 output_definition = {output_reference ~ output_alias }
-output_reference = {output_type ~ ":" }
+output_reference = {output_type }
 output_assignment = {output_definition ~ "=" ~ identifier}
-output_declaration = {"(" ~ output_assignment ~ ("," ~ output_assignment)* ~ ")" }
+output_declaration = {(output_type ~ "(" ~ (silent_type | (output_alias ~ ("," ~ output_alias)*)) ~  ")") }
+
+
+// Injected code
+injected_code = { "inject" ~ "{{" ~ (!"}}" ~ ANY)* ~  "}}" }
+
 
 // Execute
-execute = {"{" ~ "}"}
+execute = {execute_type ~ "{" ~ (signal)+ ~ injected_code? ~ "}"}
+
+end_statement = { ";"}
+
+// Signals
+signal_silent = {silent_type ~ "=" ~ "(" ~ ")"}
+signal_output = {output_alias ~ "=" ~ primitive}
+signal = {signal_type ~ ":" ~ (signal_silent | !signal_silent ~ signal_output) ~ end_statement}
 
 // Nodes
-node_declaration = {node_type ~ ":" ~ identifier}
+node_declaration = {namespace ~ identifier | !namespace ~ identifier}
 node = {node_declaration ~ node_body}
 node_body = {
     "{"
     ~ input_declaration
-    ~ execute
     ~ output_declaration
+    ~ execute    
     ~ "}"
 }
 
 // Main
-main = {main_type ~ "{" ~ execute ~ output_declaration ~ "}" }
+main = {
+    main_type ~ "{" 
+        ~ execute 
+        ~ output_declaration 
+    ~ "}" 
+    }
 
 // Program
 program = {(main | node)+}
 
 
 // System stuff
-//COMMENT = { "/" ~ (!"/" ~ ANY) ~ "*/" }
+COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
