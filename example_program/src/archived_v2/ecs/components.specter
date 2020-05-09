@@ -1,7 +1,0 @@
-component position { value: vec2 } 
-component velocity { value: vec2 }
-component hitpoints {
-    value: number, 
-    max: number
-}
-component cleanup {}

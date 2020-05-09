@@ -126,7 +126,7 @@ node_body = {
 }
 
 // Program
-program = {SOI ~ (node)+ ~ EOI}
+program = {(node)* ~ EOI}
 
 
 // System stuff

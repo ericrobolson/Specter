@@ -1,8 +1,5 @@
 use super::*;
-
-use pest::Parser;
-
-use inflector::Inflector;
+use core::fmt::Display;
 
 fn unhandled_parse(scenario: &'static str, pair: &pest::iterators::Pair<'_, Rule>) {
     unimplemented!("Unimplemented scenario in '{}' parsing: {}", scenario, pair);
@@ -13,6 +10,12 @@ pub struct Metadata {
     pub file: String,
     pub start: usize,
     pub end: usize,
+}
+
+impl Display for Metadata {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(fmt, "File: {}, position: {}", self.file, self.start)
+    }
 }
 
 impl Metadata {
@@ -33,6 +36,10 @@ pub struct Identifier {
 }
 
 impl Identifier {
+    pub fn rust(&self) -> String {
+        return format!("n_{}", self.id);
+    }
+
     pub fn parse(
         path: &String,
         rule: &pest::iterators::Pair<'_, Rule>,
@@ -55,7 +62,7 @@ impl Identifier {
         }
 
         return Ok(Self {
-            id: id.unwrap().to_string(),
+            id: id.unwrap().to_string().to_lowercase(),
             metadata: Metadata::new(path, &rule),
         });
     }
@@ -152,7 +159,7 @@ impl Execute {
         path: &String,
         rule: &pest::iterators::Pair<'_, Rule>,
     ) -> Result<Self, pest::error::Error<Rule>> {
-        println!("TODO: Execute parsing");
+        println!("TODO: Parsing for 'execute'");
 
         return Ok(Self {
             metadata: Metadata::new(path, &rule),
@@ -161,23 +168,63 @@ impl Execute {
 }
 
 #[derive(Debug, Clone)]
+pub struct Node {
+    pub id: Identifier,
+    pub input: Inputs,
+    pub output: Outputs,
+    pub execute: Execute,
+    pub metadata: Metadata,
+}
+
+#[derive(Debug, Clone)]
 pub enum Ast {
-    Program(Vec<Box<Ast>>),
-    Node {
-        id: Identifier,
-        input: Inputs,
-        output: Outputs,
-        execute: Execute,
-        metadata: Metadata,
-    },
+    Program(Vec<Ast>),
+    Node(Node),
 }
 
 impl Ast {
+    /// Given a collection of Asts, merge them
+    pub fn merge(data: Vec<Ast>) -> Ast {
+        let mut nodes = vec![];
+
+        for ast in data {
+            match ast.clone() {
+                Self::Node(n) => {
+                    nodes.push(ast);
+                }
+                Self::Program(_) => {
+                    nodes.append(&mut Self::expand_nodes(&ast));
+                }
+            }
+        }
+
+        return Ast::Program(nodes);
+    }
+
+    /// Given an ast, expand it
+    pub fn expand_nodes(ast: &Self) -> Vec<Self> {
+        let mut expanded = vec![];
+
+        match ast.clone() {
+            Self::Node(n) => {
+                expanded.push(ast.clone());
+            }
+            Self::Program(trees) => {
+                for tree in trees {
+                    let mut e = Self::expand_nodes(&tree);
+                    expanded.append(&mut e);
+                }
+            }
+        }
+
+        return expanded;
+    }
+
     pub fn build(
         path: &String,
         data: pest::iterators::Pairs<'_, Rule>,
     ) -> Result<Ast, pest::error::Error<Rule>> {
-        let mut program_data = Vec::<Box<Ast>>::new();
+        let mut program_data = Vec::<Ast>::new();
 
         for pair in data {
             match pair.as_rule() {
@@ -216,15 +263,15 @@ impl Ast {
                                     }
                                 }
 
-                                let node = Ast::Node {
+                                let node = Ast::Node(Node {
                                     id: id.unwrap(),
                                     input: inputs.unwrap(),
                                     output: outputs.unwrap(),
                                     execute: execute.unwrap(),
                                     metadata: metadata,
-                                };
+                                });
 
-                                program_data.push(Box::new(node));
+                                program_data.push(node);
                             }
                             _ => {}
                         }
