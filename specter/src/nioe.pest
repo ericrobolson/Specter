@@ -19,12 +19,12 @@
 
 
 /*
-// Example Main:
-main {
-    output (foo, bar)
-    execute {
-        signal:foo = true;
-        signal:bar = "Some String";
+// Example starting node:
+MAIN {
+    input (_)
+    output(print)
+    execute{
+        signal:print = "Hello world";
     }
 }
 
@@ -68,7 +68,6 @@ println {
 input_type = {^"input" | !(^"input") ~ ^"i"}
 output_type = {^"output" | !(^"output") ~ ^"o"}
 execute_type = {^"execute" | !(^"execute") ~ ^"e"}
-main_type = {^"main" | !(^"main") ~ ^"m"}
 signal_type = {^"signal" | !(^"signal") ~ ^"s"}
 
 // Primitives
@@ -84,34 +83,29 @@ primitive = {number | bool | string | reference }
 reserved_words = {
 input_type
 | output_type
-| main_type
 | signal_type
 | execute_type
 }
 
 // Identifier
-identifier = @{ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
-
-// Namespace
-namespace = {!reserved_words ~ identifier ~ ":" }
+identifier = @{!reserved_words ~ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
 
 // Inputs
 input = {output_alias }
-input_declaration = { input_type ~ "(" ~ input ~ ("," ~ input)* ~ ")"}
+input_declaration = { input_type ~ "(" ~ (silent_type | input ~ ("," ~ input)*) ~ ")"}
 
 // Outputs
 output_alias = {identifier}
 output_definition = {output_reference ~ output_alias }
 output_reference = {output_type }
-output_assignment = {output_definition ~ "=" ~ identifier}
 output_declaration = {(output_type ~ "(" ~ (silent_type | (output_alias ~ ("," ~ output_alias)*)) ~  ")") }
 
 // Injected code
-injected_code = { "inject" ~ "{{" ~ (!"}}" ~ ANY)* ~  "}}" }
+injected_code = { "inject" ~ "{{" ~ (!"}}" ~ ANY)* ~  "}}" ~ end_statement }
 
 
 // Execute
-execute = {execute_type ~ "{" ~ (signal | injected_code)* ~ "}"}
+execute_declaration = {execute_type ~ "{" ~ (signal | injected_code)* ~ "}"}
 
 end_statement = { ";"}
 
@@ -121,26 +115,18 @@ signal_output = {output_alias ~ "=" ~ primitive}
 signal = {signal_type ~ ":" ~ (signal_silent | !signal_silent ~ signal_output) ~ end_statement}
 
 // Nodes
-node_declaration = {namespace ~ identifier | !namespace ~ identifier}
+node_declaration = {identifier}
 node = {node_declaration ~ node_body}
 node_body = {
     "{"
     ~ input_declaration
     ~ output_declaration
-    ~ execute    
+    ~ execute_declaration    
     ~ "}"
 }
 
-// Main
-main = {
-    main_type ~ "{" 
-        ~ execute 
-        ~ output_declaration 
-    ~ "}" 
-    }
-
 // Program
-program = {(main | node)+}
+program = {SOI ~ (node)+ ~ EOI}
 
 
 // System stuff

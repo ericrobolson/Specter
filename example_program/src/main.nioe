@@ -1,0 +1,16 @@
+MAIN {
+    input (_)
+    output(print)
+    execute{
+        signal:print = "Hello world";
+    }
+}
+
+println {
+    input (print)
+    output (_)
+    execute {
+        /* This is an example comment*/
+        inject {{ println!(print_value); }};        
+    }
+}
