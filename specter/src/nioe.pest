@@ -85,6 +85,7 @@ input_type
 | output_type
 | signal_type
 | execute_type
+| inject_type
 }
 
 // Identifier
@@ -101,11 +102,14 @@ output_reference = {output_type }
 output_declaration = {(output_type ~ "(" ~ (silent_type | (output_alias ~ ("," ~ output_alias)*)) ~  ")") }
 
 // Injected code
-injected_code = { "inject" ~ "{{" ~ (!"}}" ~ ANY)* ~  "}}" ~ end_statement }
-
+injected_code = { injected_statement ~ end_statement }
+injected_statement = {"??{" ~ (!"}??" ~ ANY)* ~  "}??"}
+inject_type = {^"inject"}
+injected_include = {inject_type ~ injected_statement}
 
 // Execute
-execute_declaration = {execute_type ~ "{" ~ (signal | injected_code)* ~ "}"}
+execute_declaration = {execute_type ~ "{" ~ statement* ~ "}"}
+statement = {(signal | injected_code)}
 
 end_statement = { ";"}
 
@@ -121,6 +125,7 @@ node_body = {
     "{"
     ~ input_declaration
     ~ output_declaration
+    ~ injected_include?
     ~ execute_declaration    
     ~ "}"
 }

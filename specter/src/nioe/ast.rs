@@ -37,7 +37,7 @@ pub struct Identifier {
 
 impl Identifier {
     pub fn rust(&self) -> String {
-        return format!("n_{}", self.id);
+        return format!("{}", self.id);
     }
 
     pub fn parse(
@@ -174,6 +174,7 @@ pub struct Node {
     pub output: Outputs,
     pub execute: Execute,
     pub metadata: Metadata,
+    pub injected_include: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -236,6 +237,7 @@ impl Ast {
                                 let mut inputs = None;
                                 let mut outputs = None;
                                 let mut execute = None;
+                                let mut injected_include = None;
                                 let metadata = Metadata::new(path, &inner);
 
                                 for i2 in inner.into_inner() {
@@ -255,6 +257,10 @@ impl Ast {
                                                     Rule::execute_declaration => {
                                                         execute = Some(Execute::parse(path, &i3)?);
                                                     }
+                                                    Rule::injected_include => {
+                                                        injected_include =
+                                                            Some(i3.as_str().to_string());
+                                                    }
                                                     _ => unhandled_parse("node_body", &i3),
                                                 }
                                             }
@@ -269,6 +275,7 @@ impl Ast {
                                     output: outputs.unwrap(),
                                     execute: execute.unwrap(),
                                     metadata: metadata,
+                                    injected_include: injected_include,
                                 });
 
                                 program_data.push(node);

@@ -31,6 +31,12 @@ impl StringGenerator {
         return self;
     }
 
+    pub fn prepend(&mut self, value: String) -> &mut Self {
+        self.value.insert_str(0, value.as_str());
+
+        return self;
+    }
+
     pub fn append(&mut self, value: String) -> &mut Self {
         self.value += &value;
 

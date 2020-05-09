@@ -9,8 +9,9 @@ main {
 println {
     input (print)
     output (_)
+    inject ??{}??
     execute {
         /* This is an example comment*/
-        inject {{ println!(print_value); }};        
+        ??{ println!("{}", print_value); }??;        
     }
 }
