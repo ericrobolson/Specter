@@ -62,22 +62,61 @@ println {
     }
 }
 
+// Example scheduler:
+//TODO: add in a 'bite' operator for collections; basically takes the first item off it
+scheduler {
+    input (_, jobs[], job_priority[], finished_jobs[])
+    store (job_queue = [], current_jobs = 0)
+    output (_)
+    execute{
+        job_queue += jobs;
+
+        for job in finished_jobs{
+            current_jobs -= 1;
+        }
+
+        if current_jobs < 0 {
+            current_jobs = 0;
+        }
+
+        while current_jobs < 10 {
+            current_jobs += 1;
+
+            // Spawn has the potential for lambda equivalents, need to think hard on it
+            spawn {
+                input(bite job_queue)
+                output(finished_jobs)
+                execute{
+                    //Do some processing
+                    send:finished_jobs = true;
+                }
+            }                    
+        }
+    }
+}
+
 */
 
 // Types
-input_type = {^"input" | !(^"input") ~ ^"i"}
-output_type = {^"output" | !(^"output") ~ ^"o"}
-execute_type = {^"execute" | !(^"execute") ~ ^"e"}
-signal_type = {^"signal" | !(^"signal") ~ ^"s"}
+input_type = {^"input"}
+output_type = {^"output"}
+execute_type = {^"execute"}
+signal_type = {^"signal"}
+store_type = {^"store"}
+spawn_type = {^"spawn"}
 
 // Primitives
 number = ${("-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?}
 bool = ${^"true" | ^"false"}
 string = {"\"" ~ (!"\"" ~ ANY)*  ~ "\""}
 reference = {identifier}
+array = {"[" ~ "]"}
+//message = {"{" ~ identifier+ ~ "}"}
 silent_type = {"_"}
 
-primitive = {number | bool | string | reference }
+primitive = {number | bool | string | reference | array 
+//| message 
+}
 
 // Reserved words
 reserved_words = {
@@ -86,14 +125,16 @@ input_type
 | signal_type
 | execute_type
 | inject_type
+| store_type
+| spawn_type
 }
 
 // Identifier
-identifier = @{!reserved_words ~ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
+identifier = @{!reserved_words ~ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
 
 // Inputs
-input = {output_alias }
-input_declaration = { input_type ~ "(" ~ (silent_type | input ~ ("," ~ input)*) ~ ")"}
+input = {output_alias ~ array? }
+input_declaration = { input_type ~ "(" ~ (silent_type | input) ~ ("," ~ input)* ~ ")"}
 
 // Outputs
 output_alias = {identifier}
@@ -109,21 +150,28 @@ injected_include = {inject_type ~ injected_statement}
 
 // Execute
 execute_declaration = {execute_type ~ "{" ~ statement* ~ "}"}
-statement = {(signal | injected_code)}
+statement = {(signal | injected_code | expr) ~ end_statement}
+
+expr = {^"if"}
 
 end_statement = { ";"}
 
 // Signals
 signal_silent = {silent_type ~ "=" ~ "(" ~ ")"}
 signal_output = {output_alias ~ "=" ~ primitive}
-signal = {signal_type ~ ":" ~ (signal_silent | !signal_silent ~ signal_output) ~ end_statement}
+signal = {signal_type ~ ":" ~ (signal_silent | !signal_silent ~ signal_output)}
+
+// Store
+store_declaration = { store_type ~ "(" ~ (store ~ ("," ~ store)*) ~ ")"}
+store = {identifier ~ "=" ~ primitive }
 
 // Nodes
 node_declaration = {identifier}
 node = {node_declaration ~ node_body}
 node_body = {
     "{"
-    ~ input_declaration
+    ~ input_declaration?
+    ~ store_declaration?
     ~ output_declaration
     ~ injected_include?
     ~ execute_declaration    
