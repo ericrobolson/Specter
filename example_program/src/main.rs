@@ -53,8 +53,33 @@ impl main {
 		}
 	}
 	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
-		println!("TODO: main.execute()");
-		storage.insert("kill".to_string(), vec!["true".to_string()]);
+		
+		
+		// Send signal console_out
+		{
+			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
+			if let Some(value_array) = storage.get_mut("console_out") {
+				let mut vals = &mut *value_array;
+				vals.push("Hello world through console".to_string());
+			}
+			// Otherwise, initialize a new entry in storage
+			else {
+				storage.insert("console_out".to_string(), vec!["Hello world through console".to_string()]);
+			}
+		}
+		
+		// Send signal print
+		{
+			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
+			if let Some(value_array) = storage.get_mut("print") {
+				let mut vals = &mut *value_array;
+				vals.push("Hello world through signal".to_string());
+			}
+			// Otherwise, initialize a new entry in storage
+			else {
+				storage.insert("print".to_string(), vec!["Hello world through signal".to_string()]);
+			}
+		}
 	}
 }
 
@@ -68,7 +93,24 @@ impl println {
 		}
 	}
 	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
-		println!("TODO: println.execute()");
-		storage.insert("kill".to_string(), vec!["true".to_string()]);
+		
+		//Check to see that all inputs are ready
+		// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.
+		if storage.get("print").is_none() {
+			return;
+		}
+		
+		// Send signal kill
+		{
+			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
+			if let Some(value_array) = storage.get_mut("kill") {
+				let mut vals = &mut *value_array;
+				vals.push(true.to_string());
+			}
+			// Otherwise, initialize a new entry in storage
+			else {
+				storage.insert("kill".to_string(), vec![true.to_string()]);
+			}
+		}
 	}
 }

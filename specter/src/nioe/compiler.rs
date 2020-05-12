@@ -265,12 +265,61 @@ fn generate(ast: &Ast) -> String {
                     .indent()
                     .add_line();
 
+                // If none of the inputs are ready, don't continue execution
+                {
+                    if node.input.is_some() {
+                        let input = node.input.as_ref().unwrap().clone();
+                        match input {
+                            ast::Inputs::References(_, refs) => {
+                                generator
+                                    .add_line()
+                                    .append("//Check to see that all inputs are ready".to_string())
+                                    .add_line()
+                                    .append("// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.".to_string())
+                                    .add_line()
+                                    .append("if ".to_string());
+                                // For each input, check to see that it's in storage
+                                let mut reference_count = 0;
+                                for reference in refs {
+                                    if reference_count != 0 {
+                                        generator.append(" && ".to_string());
+                                    }
+
+                                    reference_count += 1;
+
+                                    generator.append(format!(
+                                        "storage.get(\"{}\").is_none()",
+                                        reference.rust()
+                                    ));
+                                }
+
+                                generator
+                                    .append(" {".to_string())
+                                    .indent()
+                                    .add_line()
+                                    .append("return;".to_string())
+                                    .unindent()
+                                    .add_line()
+                                    .append("}".to_string());
+                            }
+                        }
+                    }
+                }
+
                 // Generate the actual execution implementation
                 {
-                    generator
-                        .append(format!("println!(\"TODO: {}.execute()\");", node.id.rust()))
-                        .add_line()
-                        .append(signal(END_PROGRAM.to_string(), "true".to_string()));
+                    for statement in &node.execute.statements {
+                        match statement {
+                            ast::ExecuteStatements::Signal(s) => {
+                                let id = s.id.clone();
+                                let value = s.message_value.clone();
+
+                                generator.add_line();
+                                signal(id.rust(), value.rust(), &mut generator);
+                            }
+                            _ => unimplemented!("Compiler: statement compiling"),
+                        }
+                    }
                 }
 
                 generator.unindent().add_line().append("}".to_string());
@@ -283,11 +332,46 @@ fn generate(ast: &Ast) -> String {
     return generator.to_string();
 }
 
-fn signal(signal: String, value: String) -> String {
-    return format!(
-        "storage.insert(\"{}\".to_string(), vec![\"{}\".to_string()]);",
-        signal, value
-    );
+fn signal(signal: String, value: String, generator: &mut StringGenerator) {
+    generator
+        .add_line()
+        .append(format!("// Send signal {}", signal))
+        .add_line()
+        .append("{".to_string())
+        .indent()
+        .add_line()
+        .append("// First, check if there exists a storage entry. If so, add it to the back of existing signals.".to_string())
+        .add_line()
+        .append(format!(
+            "if let Some(value_array) = storage.get_mut(\"{}\") {{",
+            signal
+        ))
+        .indent()
+        .add_line()
+        .append("let mut vals = &mut *value_array;".to_string())
+        .add_line()
+        .append(format!("vals.push({}.to_string());", value))
+        .unindent()
+        .add_line()
+        .append("}".to_string())
+        .add_line()
+        .append("// Otherwise, initialize a new entry in storage".to_string())
+        .add_line()
+        .append("else {".to_string())
+        .indent()
+        .add_line()
+        .append(format!(
+            "storage.insert(\"{}\".to_string(), vec![{}.to_string()]);",
+            signal, value
+        ))
+        .unindent()
+        .add_line()
+        .append("}".to_string())
+        .unindent()
+        .add_line()
+        .append("}".to_string());
+
+    return;
 }
 
 fn reference_counter(id: &nioe::ast::Identifier) -> String {
@@ -301,10 +385,6 @@ pub fn execute(ast: &Ast) {
     let transpiled_code = generate(ast);
     let finalized_code = add_main(transpiled_code);
     write_to_disk(finalized_code);
-}
-
-fn output_queue(id: &String) -> String {
-    return format!("{}_output_queue", id);
 }
 
 fn write_to_disk(code: String) {

@@ -1,7 +1,8 @@
 main {    
-    output(print)
+    output(console_out, print)
     execute{
-        signal:print = "Hello world";
+        signal:console_out = "Hello world through console";
+        signal:print = "Hello world through signal";
     }
 }
 

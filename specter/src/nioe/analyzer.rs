@@ -48,6 +48,8 @@ pub fn execute(ast: &Ast) {
                             let existing = output_map.get(&reference.id);
                             if existing.is_some() {
                                 let existing = existing.unwrap();
+                                //TODO: verify that the types are the same
+                                break;
                                 already_defined(
                                     "output",
                                     &reference.id,
