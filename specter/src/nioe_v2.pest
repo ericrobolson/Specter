@@ -62,6 +62,38 @@ println {
     }
 }
 
+// Example scheduler:
+//TODO: add in a 'bite' operator for collections; basically takes the first item off it
+scheduler {
+    input (_, jobs[], job_priority[], finished_jobs[])
+    store (job_queue = [], current_jobs = 0)
+    output (_)
+    execute{
+        job_queue += jobs;
+
+        for job in finished_jobs{
+            current_jobs -= 1;
+        }
+
+        if current_jobs < 0 {
+            current_jobs = 0;
+        }
+
+        while current_jobs < 10 {
+            current_jobs += 1;
+
+            // Spawn has the potential for lambda equivalents, need to think hard on it
+            spawn {
+                input(bite job_queue)
+                output(finished_jobs)
+                execute{
+                    //Do some processing
+                    send:finished_jobs = true;
+                }
+            }                    
+        }
+    }
+}
 
 */
 
@@ -80,7 +112,7 @@ string = {"\"" ~ (!"\"" ~ ANY)*  ~ "\""}
 reference = {identifier}
 array = {"[" ~ "]"}
 //message = {"{" ~ identifier+ ~ "}"}
-//v2: silent_type = {"_"}
+silent_type = {"_"}
 
 primitive = {number | bool | string | reference | array 
 //| message 
@@ -102,22 +134,13 @@ identifier = @{!reserved_words ~ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
 
 // Inputs
 input = {output_alias ~ array? }
-input_declaration = { input_type ~ "(" 
-	~ (  //v2: silent_type | 
-    	input
-    ) 
-    ~ ("," ~ input)* ~ ")"}
+input_declaration = { input_type ~ "(" ~ (silent_type | input) ~ ("," ~ input)* ~ ")"}
 
 // Outputs
 output_alias = {identifier}
 output_definition = {output_reference ~ output_alias }
 output_reference = {output_type }
-output_declaration = {(output_type ~ "(" ~ 
-	(//v2: silent_type | 
-    (output_alias ~ ("," ~ output_alias)*)) 
-    ~  ")"
-    ) 
-  }
+output_declaration = {(output_type ~ "(" ~ (silent_type | (output_alias ~ ("," ~ output_alias)*)) ~  ")") }
 
 // Injected code
 //v2?: injected_code = { injected_statement ~ end_statement }
@@ -139,11 +162,9 @@ expr = {^"if"}
 end_statement = { ";"}
 
 // Signals
-//v2signal_silent = {silent_type ~ "=" ~ "(" ~ ")"}
+signal_silent = {silent_type ~ "=" ~ "(" ~ ")"}
 signal_output = {output_alias ~ "=" ~ primitive}
-signal = {signal_type ~ ":" ~ (
-	//v2:signal_silent | !signal_silent ~ 
-    signal_output)}
+signal = {signal_type ~ ":" ~ (signal_silent | !signal_silent ~ signal_output)}
 
 // Store
 //v2: store_declaration = { store_type ~ "(" ~ (store ~ ("," ~ store)*) ~ ")"}

@@ -1,5 +1,4 @@
-main {
-    input (_)
+main {    
     output(print)
     execute{
         signal:print = "Hello world";
@@ -8,10 +7,9 @@ main {
 
 println {
     input (print)
-    output (_)
-    inject ??{}??
+    output (core_console_print)    
     execute {
         /* This is an example comment*/
-        ??{ println!("{}", print_value); }??;        
+        signal:core_print = print;
     }
 }

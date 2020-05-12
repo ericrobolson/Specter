@@ -38,8 +38,9 @@ pub fn execute(ast: &Ast) {
                 }
 
                 // Save inputs for second pass to validate after all outputs
-                inputs.push(n.input);
-
+                if n.input.is_some() {
+                    inputs.push(n.input.unwrap());
+                }
                 // Verify that there's no duplicate outputs
                 match n.output {
                     ast::Outputs::References(metadata, references) => {
@@ -58,9 +59,6 @@ pub fn execute(ast: &Ast) {
                             output_map.insert(reference.id.clone(), reference.clone());
                         }
                     }
-                    ast::Outputs::Silent(_) => {
-                        // Ignore silent outputs
-                    }
                 }
             }
             _ => {}
@@ -70,9 +68,6 @@ pub fn execute(ast: &Ast) {
     // Second pass validation for inputs
     for input in inputs {
         match input {
-            ast::Inputs::Silent(_) => {
-                // Ignore silent inputs
-            }
             ast::Inputs::References(metadata, references) => {
                 if references.is_empty() {
                     panic!(

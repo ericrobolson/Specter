@@ -70,7 +70,6 @@ impl Identifier {
 
 #[derive(Debug, Clone)]
 pub enum Inputs {
-    Silent(Metadata),
     References(Metadata, Vec<Identifier>),
 }
 
@@ -86,9 +85,6 @@ impl Inputs {
                 for inner in rule.clone().into_inner() {
                     match inner.as_rule() {
                         Rule::input_type => {}
-                        Rule::silent_type => {
-                            return Ok(Self::Silent(Metadata::new(path, &inner)));
-                        }
                         Rule::input => {
                             for inner2 in inner.into_inner() {
                                 let id = Identifier::parse(path, &inner2)?;
@@ -108,7 +104,6 @@ impl Inputs {
 
 #[derive(Debug, Clone)]
 pub enum Outputs {
-    Silent(Metadata),
     References(Metadata, Vec<Identifier>),
 }
 
@@ -124,9 +119,6 @@ impl Outputs {
                 for inner in rule.clone().into_inner() {
                     match inner.as_rule() {
                         Rule::output_type => {}
-                        Rule::silent_type => {
-                            return Ok(Self::Silent(Metadata::new(path, &inner)));
-                        }
                         Rule::output_alias => {
                             for inner2 in inner.into_inner() {
                                 match inner2.as_rule() {
@@ -170,7 +162,7 @@ impl Execute {
 #[derive(Debug, Clone)]
 pub struct Node {
     pub id: Identifier,
-    pub input: Inputs,
+    pub input: Option<Inputs>,
     pub output: Outputs,
     pub execute: Execute,
     pub metadata: Metadata,
@@ -257,10 +249,10 @@ impl Ast {
                                                     Rule::execute_declaration => {
                                                         execute = Some(Execute::parse(path, &i3)?);
                                                     }
-                                                    Rule::injected_include => {
-                                                        injected_include =
-                                                            Some(i3.as_str().to_string());
-                                                    }
+                                                    //Rule::injected_include => {
+                                                    //    injected_include =
+                                                    //        Some(i3.as_str().to_string());
+                                                    //}
                                                     _ => unhandled_parse("node_body", &i3),
                                                 }
                                             }
@@ -271,7 +263,7 @@ impl Ast {
 
                                 let node = Ast::Node(Node {
                                     id: id.unwrap(),
-                                    input: inputs.unwrap(),
+                                    input: inputs,
                                     output: outputs.unwrap(),
                                     execute: execute.unwrap(),
                                     metadata: metadata,

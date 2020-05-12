@@ -27,14 +27,3 @@ pub fn build() {
     analyzer::execute(&ast);
     compiler::execute(&ast);
 }
-
-pub fn debug() {
-    println!();
-    println!("//////////////////////////////////////////////////////");
-    println!("This is the beginning of the debug compilation of Nioe");
-    println!("//////////////////////////////////////////////////////");
-
-    let ast = lexer::execute();
-    analyzer::execute(&ast);
-    compiler::print_execution(&ast);
-}

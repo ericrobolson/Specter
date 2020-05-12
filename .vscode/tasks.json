@@ -16,10 +16,19 @@
       "options": {
         "cwd": "${workspaceRoot}/example_program"
       },
+      "group": "build"
+    },
+    {
+      "type": "cargo",
+      "subcommand": "build",
+      "problemMatcher": [
+        "$rustc"
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
-      }
-    },
+      },
+      "label": "Rust: cargo build - example_program"
+    }
   ]
 }
