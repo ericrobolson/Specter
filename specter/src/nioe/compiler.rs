@@ -6,8 +6,8 @@ use std::io::prelude::*;
 use std::io::{self, BufRead, LineWriter};
 use std::path::Path;
 
-const END_PROGRAM: &'static str = "kill";
-const PRINT_SIGNAL: &'static str = "console_out";
+const END_PROGRAM: &'static str = "s_kill";
+const PRINT_SIGNAL: &'static str = "s_console_out";
 
 fn add_main(code: String) -> String {
     let mut generator = StringGenerator::from_string(code);
@@ -275,32 +275,98 @@ fn generate(ast: &Ast) -> String {
                                     .add_line()
                                     .append("//Check to see that all inputs are ready".to_string())
                                     .add_line()
-                                    .append("// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.".to_string())
-                                    .add_line()
-                                    .append("if ".to_string());
-                                // For each input, check to see that it's in storage
-                                let mut reference_count = 0;
-                                for reference in refs {
-                                    if reference_count != 0 {
-                                        generator.append(" && ".to_string());
-                                    }
+                                    .append("// First, retrieve all relevant inputs".to_string())
+                                    .add_line();
 
-                                    reference_count += 1;
+                                let mut signal_aliases = vec![];
 
-                                    generator.append(format!(
-                                        "storage.get(\"{}\").is_none()",
-                                        reference.rust()
+                                for reference in &refs {
+                                    let signal_alias = format!("s_{}", reference.rust());
+                                    signal_aliases.push((signal_alias.clone(), reference.clone()));
+
+                                    generator.add_line().append(format!(
+                                        "let {} = {};",
+                                        signal_alias,
+                                        storage_get(&reference.rust())
                                     ));
                                 }
 
-                                generator
-                                    .append(" {".to_string())
+                                generator.add_line().append("// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.".to_string())
+                                    .add_line()
+                                    .append("{".to_string())
                                     .indent()
-                                    .add_line()
-                                    .append("return;".to_string())
-                                    .unindent()
-                                    .add_line()
-                                    .append("}".to_string());
+                                    .add_line();
+
+                                // For each input, check to see that it's in storage
+                                {
+                                    generator.add_line();
+                                    let mut all_entries_exist_code = StringGenerator::new();
+                                    {
+                                        let mut reference_count = 0;
+                                        for reference in &signal_aliases {
+                                            if reference_count != 0 {
+                                                all_entries_exist_code.append(" || ".to_string());
+                                            }
+
+                                            reference_count += 1;
+
+                                            all_entries_exist_code
+                                                .append(format!("{}.is_none()", reference.0));
+                                        }
+                                    }
+
+                                    let mut new_inputs_not_present_code = StringGenerator::new();
+                                    {
+                                        let mut reference_count = 0;
+                                        for reference in &refs {
+                                            if reference_count != 0 {
+                                                new_inputs_not_present_code
+                                                    .append(" || ".to_string());
+                                            }
+
+                                            reference_count += 1;
+
+                                            new_inputs_not_present_code.append(format!(
+                                                "{}.is_none()",
+                                                storage_get(&reference.rust())
+                                            ));
+                                        }
+                                    }
+
+                                    generator
+                                        .append(format!(
+                                            "if ({}) || ({})",
+                                            all_entries_exist_code.to_string(),
+                                            new_inputs_not_present_code.to_string()
+                                        ))
+                                        .append(" {".to_string())
+                                        .indent()
+                                        .add_line()
+                                        .append("return;".to_string())
+                                        .unindent()
+                                        .add_line()
+                                        .append("}".to_string())
+                                        .unindent()
+                                        .add_line()
+                                        .append("}".to_string());
+
+                                    // If we're here, then that means it can process.
+                                    generator
+                                        .add_line()
+                                        .append("// If we're here, that means that the node can execute. Get the current values, then increment the current message index for the nodes.".to_string());
+
+                                    for alias in &signal_aliases {
+                                        generator.add_line().append(format!(
+                                            "let {} = ({}.unwrap())[self.{}]; //TODO: wire up message index",
+                                            alias.0, alias.0, reference_counter(&alias.1)
+                                        ));
+
+                                        generator.add_line().append(format!(
+                                            "self.{} += 1;",
+                                            reference_counter(&alias.1)
+                                        ));
+                                    }
+                                }
                             }
                         }
                     }
@@ -332,10 +398,18 @@ fn generate(ast: &Ast) -> String {
     return generator.to_string();
 }
 
-fn signal(signal: String, value: String, generator: &mut StringGenerator) {
+fn storage_get(rust_id: &String) -> String {
+    return format!("storage.get(\"s_{}\")", rust_id);
+}
+
+fn storage_get_mut(rust_id: &String) -> String {
+    return format!("storage.get_mut(\"s_{}\")", rust_id);
+}
+
+fn signal(rust_id: String, value: String, generator: &mut StringGenerator) {
     generator
         .add_line()
-        .append(format!("// Send signal {}", signal))
+        .append(format!("// Send signal {}", rust_id))
         .add_line()
         .append("{".to_string())
         .indent()
@@ -343,8 +417,8 @@ fn signal(signal: String, value: String, generator: &mut StringGenerator) {
         .append("// First, check if there exists a storage entry. If so, add it to the back of existing signals.".to_string())
         .add_line()
         .append(format!(
-            "if let Some(value_array) = storage.get_mut(\"{}\") {{",
-            signal
+            "if let Some(value_array) = {} {{",
+            storage_get_mut(&rust_id)
         ))
         .indent()
         .add_line()
@@ -361,8 +435,8 @@ fn signal(signal: String, value: String, generator: &mut StringGenerator) {
         .indent()
         .add_line()
         .append(format!(
-            "storage.insert(\"{}\".to_string(), vec![{}.to_string()]);",
-            signal, value
+            "storage.insert(\"s_{}\".to_string(), vec![{}.to_string()]);",
+            rust_id, value
         ))
         .unindent()
         .add_line()
@@ -375,7 +449,7 @@ fn signal(signal: String, value: String, generator: &mut StringGenerator) {
 }
 
 fn reference_counter(id: &nioe::ast::Identifier) -> String {
-    return format!("{}_index", id.rust());
+    return format!("{}_signal_index", id.rust());
 }
 fn alias(node: &ast::Node) -> String {
     return format!("node_{}", node.id.rust());

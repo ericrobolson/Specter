@@ -146,6 +146,7 @@ pub enum PrimitiveTypes {
     Number(f32),
     Boolean(bool),
     Str(String),
+    Reference(Identifier),
 }
 
 #[derive(Debug, Clone)]
@@ -159,6 +160,7 @@ impl Primitive {
         return match &self.value {
             PrimitiveTypes::Number(n) => format!("{}", n),
             PrimitiveTypes::Boolean(b) => format!("{}", b),
+            PrimitiveTypes::Reference(i) => format!("{}", i.rust()),
             PrimitiveTypes::Str(s) => s.clone(),
         };
     }
@@ -193,6 +195,11 @@ impl Primitive {
                             }
                         }
                         println!("TODO bools: value: {}", i.as_str());
+                    }
+                    Rule::reference => {
+                        // Get reference
+                        let id = Identifier::parse(&path, &i).unwrap();
+                        value = Some(PrimitiveTypes::Reference(id));
                     }
                     _ => {
                         unhandled_parse("primitive", &i);

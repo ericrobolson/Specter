@@ -30,13 +30,13 @@ impl Nioe {
 		node_main.execute(&mut storage);
 		
 		// This is the core loop that processes node i/o
-		while storage.get("kill").is_none() {
+		while storage.get("s_kill").is_none() {
 			// Print console messages
-			let print_vals = storage.get("console_out");
+			let print_vals = storage.get("s_console_out");
 			if print_vals.is_some() {
 				let print_vals = print_vals.unwrap();
 				for val in print_vals {println!("{:?}", val);}
-				storage.remove("console_out");
+				storage.remove("s_console_out");
 			}
 			
 			// Node executions
@@ -58,58 +58,80 @@ impl main {
 		// Send signal console_out
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
-			if let Some(value_array) = storage.get_mut("console_out") {
+			if let Some(value_array) = storage.get_mut("s_console_out") {
 				let mut vals = &mut *value_array;
 				vals.push("Hello world through console".to_string());
 			}
 			// Otherwise, initialize a new entry in storage
 			else {
-				storage.insert("console_out".to_string(), vec!["Hello world through console".to_string()]);
+				storage.insert("s_console_out".to_string(), vec!["Hello world through console".to_string()]);
 			}
 		}
 		
 		// Send signal print
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
-			if let Some(value_array) = storage.get_mut("print") {
+			if let Some(value_array) = storage.get_mut("s_print") {
 				let mut vals = &mut *value_array;
 				vals.push("Hello world through signal".to_string());
 			}
 			// Otherwise, initialize a new entry in storage
 			else {
-				storage.insert("print".to_string(), vec!["Hello world through signal".to_string()]);
+				storage.insert("s_print".to_string(), vec!["Hello world through signal".to_string()]);
 			}
 		}
 	}
 }
 
 pub struct println {
-	pub print_index: usize,
+	pub print_signal_index: usize,
 }
 impl println {
 	pub fn new() -> Self {
 		Self {
-			print_index: 0,
+			print_signal_index: 0,
 		}
 	}
 	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
 		
 		//Check to see that all inputs are ready
+		// First, retrieve all relevant inputs
+		
+		let s_print = storage.get("s_print");
 		// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.
-		if storage.get("print").is_none() {
-			return;
+		{
+			
+			if (s_print.is_none()) || (storage.get("s_print").is_none()) {
+				return;
+			}
+		}
+		// If we're here, that means that the node can execute. Get the current values, then increment the current message index for the nodes.
+		let s_print = (s_print.unwrap())[self.print_signal_index]; //TODO: wire up message index
+		self.print_signal_index += 1;
+		
+		// Send signal console_out
+		{
+			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
+			if let Some(value_array) = storage.get_mut("s_console_out") {
+				let mut vals = &mut *value_array;
+				vals.push(print.to_string());
+			}
+			// Otherwise, initialize a new entry in storage
+			else {
+				storage.insert("s_console_out".to_string(), vec![print.to_string()]);
+			}
 		}
 		
 		// Send signal kill
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
-			if let Some(value_array) = storage.get_mut("kill") {
+			if let Some(value_array) = storage.get_mut("s_kill") {
 				let mut vals = &mut *value_array;
 				vals.push(true.to_string());
 			}
 			// Otherwise, initialize a new entry in storage
 			else {
-				storage.insert("kill".to_string(), vec![true.to_string()]);
+				storage.insert("s_kill".to_string(), vec![true.to_string()]);
 			}
 		}
 	}
