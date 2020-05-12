@@ -214,10 +214,23 @@ fn generate(ast: &Ast) -> String {
                 .add_line()
                 .append("}".to_string())
                 .add_line()
-                .append(format!(
-                    "pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {{ println!(\"TODO: {}.execute()\");}}",
-                    node.id.rust()
-                ))
+                // Execution function
+                .append(
+                    "pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {"
+                        .to_string(),
+                )
+                .indent()
+                .add_line();
+
+            // Generate the actual execution implementation
+            {
+                generator.append(format!("println!(\"TODO: {}.execute()\");", node.id.rust()));
+            }
+
+            generator
+                .unindent()
+                .add_line()
+                .append("}".to_string())
                 .unindent()
                 .add_line()
                 .append("}".to_string());
@@ -227,11 +240,15 @@ fn generate(ast: &Ast) -> String {
     return generator.to_string();
 }
 
+fn signal() -> String {
+    return String::new();
+}
+
 fn reference_counter(id: &nioe::ast::Identifier) -> String {
     return format!("{}_index", id.rust());
 }
 fn alias(node: &ast::Node) -> String {
-    return format!("alias_{}", node.id.rust());
+    return format!("node_{}", node.id.rust());
 }
 
 pub fn execute(ast: &Ast) {
