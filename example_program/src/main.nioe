@@ -7,9 +7,10 @@ main {
 
 println {
     input (print)
-    output (core_console_print)    
+    output (console_out, kill)    
     execute {
         /* This is an example comment*/
-        signal:core_print = print;
+        signal:console_out = print;
+        signal:kill = true;
     }
 }

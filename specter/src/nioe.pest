@@ -101,7 +101,9 @@ input_type
 identifier = @{!reserved_words ~ ASCII_ALPHA ~ ("_" | ASCII_ALPHANUMERIC)*}
 
 // Inputs
-input = {output_alias ~ array? }
+input = {output_alias 
+    // v2: ~ array? 
+    }
 input_declaration = { input_type ~ "(" 
 	~ (  //v2: silent_type | 
     	input
