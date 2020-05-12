@@ -11,6 +11,8 @@ fn main() {
 	
 }
 
+#[derive(PartialEq)]
+pub enum KillStates {NotSignalled, Kill}
 pub struct Nioe {}
 impl Nioe {
 	pub fn new() -> Self {
@@ -30,7 +32,16 @@ impl Nioe {
 		node_main.execute(&mut storage);
 		
 		// This is the core loop that processes node i/o
-		while storage.get("s_kill").is_none() {
+		let mut kill_state = KillStates::NotSignalled;
+		while kill_state != KillStates::Kill {
+			
+			// Node executions
+			node_println.execute(&mut storage);
+			
+			// Check whether the program should be killed. If it's just been signalled, do one more execution pass for any outstanding stuff.
+			if storage.get("s_kill").is_some() {
+				kill_state = KillStates::Kill;
+			}
 			// Print console messages
 			let print_vals = storage.get("s_console_out");
 			if print_vals.is_some() {
@@ -38,9 +49,6 @@ impl Nioe {
 				for val in print_vals {println!("{:?}", val);}
 				storage.remove("s_console_out");
 			}
-			
-			// Node executions
-			node_println.execute(&mut storage);
 		}
 	}
 }
@@ -54,7 +62,6 @@ impl main {
 	}
 	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
 		
-		
 		// Send signal console_out
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
@@ -67,7 +74,6 @@ impl main {
 				storage.insert("s_console_out".to_string(), vec!["Hello world through console".to_string()]);
 			}
 		}
-		
 		// Send signal print
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
@@ -106,22 +112,20 @@ impl println {
 			}
 		}
 		// If we're here, that means that the node can execute. Get the current values, then increment the current message index for the nodes.
-		let s_print = (s_print.unwrap())[self.print_signal_index]; //TODO: wire up message index
+		let s_print = (s_print.unwrap())[self.print_signal_index].clone();
 		self.print_signal_index += 1;
-		
 		// Send signal console_out
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
 			if let Some(value_array) = storage.get_mut("s_console_out") {
 				let mut vals = &mut *value_array;
-				vals.push(print.to_string());
+				vals.push(s_print.to_string());
 			}
 			// Otherwise, initialize a new entry in storage
 			else {
-				storage.insert("s_console_out".to_string(), vec![print.to_string()]);
+				storage.insert("s_console_out".to_string(), vec![s_print.to_string()]);
 			}
 		}
-		
 		// Send signal kill
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.

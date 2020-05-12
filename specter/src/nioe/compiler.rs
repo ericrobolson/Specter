@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::io::{self, BufRead, LineWriter};
 use std::path::Path;
 
-const END_PROGRAM: &'static str = "s_kill";
+const END_PROGRAM: &'static str = "kill";
 const PRINT_SIGNAL: &'static str = "s_console_out";
 
 fn add_main(code: String) -> String {
@@ -86,6 +86,12 @@ fn generate(ast: &Ast) -> String {
     {
         generator
             .add_line()
+            .append("#[derive(PartialEq)]".to_string())
+            .add_line()
+            .append("pub enum KillStates {".to_string())
+            .append("NotSignalled, Kill".to_string())
+            .append("}".to_string())
+            .add_line()
             .append("pub struct Nioe {}".to_string())
             .add_line()
             .append("impl Nioe {".to_string())
@@ -144,33 +150,10 @@ fn generate(ast: &Ast) -> String {
                     .add_lines(2)
                     .append("// This is the core loop that processes node i/o".to_string())
                     .add_line()
-                    .append(format!(
-                        "while storage.get(\"{}\").is_none() {{",
-                        END_PROGRAM
-                    ))
+                    .append("let mut kill_state = KillStates::NotSignalled;".to_string())
+                    .add_line()
+                    .append("while kill_state != KillStates::Kill {".to_string())
                     .indent();
-                // Handle console_out
-                generator
-                    .add_line()
-                    .append("// Print console messages".to_string())
-                    .add_line()
-                    .append(format!(
-                        "let print_vals = storage.get(\"{}\");",
-                        PRINT_SIGNAL
-                    ))
-                    .add_line()
-                    .append("if print_vals.is_some() {".to_string())
-                    .indent()
-                    .add_line()
-                    // do print
-                    .append("let print_vals = print_vals.unwrap();".to_string())
-                    .add_line()
-                    .append("for val in print_vals {println!(\"{:?}\", val);}".to_string())
-                    .add_line()
-                    .append(format!("storage.remove(\"{}\");", PRINT_SIGNAL))
-                    .unindent()
-                    .add_line()
-                    .append("}".to_string());
 
                 // For each node, link it up
                 generator
@@ -182,6 +165,45 @@ fn generate(ast: &Ast) -> String {
                         .append(format!("{}.execute(&mut storage);", alias(&n)));
                 }
 
+                // Handle end conditions
+                {
+                    generator
+                        .add_lines(2)
+                        .append("// Check whether the program should be killed. If it's just been signalled, do one more execution pass for any outstanding stuff.".to_string())
+                        .add_line()
+                        .append(format!("if {}.is_some() {{", storage_get(&END_PROGRAM.to_string())))
+                        .indent()
+                        .add_line()
+                        .append("kill_state = KillStates::Kill;".to_string())
+                        .unindent()
+                        .add_line()
+                        .append("}".to_string());
+                }
+
+                // Handle console_out
+                {
+                    generator
+                        .add_line()
+                        .append("// Print console messages".to_string())
+                        .add_line()
+                        .append(format!(
+                            "let print_vals = storage.get(\"{}\");",
+                            PRINT_SIGNAL
+                        ))
+                        .add_line()
+                        .append("if print_vals.is_some() {".to_string())
+                        .indent()
+                        .add_line()
+                        // do print
+                        .append("let print_vals = print_vals.unwrap();".to_string())
+                        .add_line()
+                        .append("for val in print_vals {println!(\"{:?}\", val);}".to_string())
+                        .add_line()
+                        .append(format!("storage.remove(\"{}\");", PRINT_SIGNAL))
+                        .unindent()
+                        .add_line()
+                        .append("}".to_string());
+                }
                 // Close loop
                 generator.unindent().add_line().append("}".to_string());
             }
@@ -357,8 +379,10 @@ fn generate(ast: &Ast) -> String {
 
                                     for alias in &signal_aliases {
                                         generator.add_line().append(format!(
-                                            "let {} = ({}.unwrap())[self.{}]; //TODO: wire up message index",
-                                            alias.0, alias.0, reference_counter(&alias.1)
+                                            "let {} = ({}.unwrap())[self.{}].clone();",
+                                            alias.0,
+                                            alias.0,
+                                            reference_counter(&alias.1)
                                         ));
 
                                         generator.add_line().append(format!(
@@ -377,11 +401,7 @@ fn generate(ast: &Ast) -> String {
                     for statement in &node.execute.statements {
                         match statement {
                             ast::ExecuteStatements::Signal(s) => {
-                                let id = s.id.clone();
-                                let value = s.message_value.clone();
-
-                                generator.add_line();
-                                signal(id.rust(), value.rust(), &mut generator);
+                                signal(s, &mut generator);
                             }
                             _ => unimplemented!("Compiler: statement compiling"),
                         }
@@ -406,10 +426,18 @@ fn storage_get_mut(rust_id: &String) -> String {
     return format!("storage.get_mut(\"s_{}\")", rust_id);
 }
 
-fn signal(rust_id: String, value: String, generator: &mut StringGenerator) {
+fn signal(s: &ast::Signal, generator: &mut StringGenerator) {
+    let value = match &s.message_value.value {
+        ast::PrimitiveTypes::Number(n) => format!("{}", n),
+        ast::PrimitiveTypes::Boolean(b) => format!("{}", b),
+        ast::PrimitiveTypes::Reference(i) => format!("s_{}", i.rust()),
+        ast::PrimitiveTypes::Str(s) => s.clone(),
+    };
+    let rust_id = s.id.rust();
+
     generator
         .add_line()
-        .append(format!("// Send signal {}", rust_id))
+        .append(format!("// Send signal {}", s.id.rust()))
         .add_line()
         .append("{".to_string())
         .indent()
