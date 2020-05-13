@@ -8,9 +8,9 @@
             "name": "Client Debug",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "target/debug/example_program.exe",
+            "program": "target/debug/specter_core.exe",
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/example_program",
+            "cwd": "${workspaceFolder}/specter_core",
             "externalConsole": true
         },
         //{

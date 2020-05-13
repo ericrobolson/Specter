@@ -21,6 +21,16 @@ use nioe::{analyzer, compiler, lexer};
 
 const FILE_TYPE: &'static str = ".nioe";
 
+fn main() {
+    /*
+    Compiler asks
+        0) No cmd args shows the 'help' menu
+        1) Specify folder for files to parse
+        2) Specify optional debug flag which shows transpiled code
+    */
+    println!("TODO!");
+}
+
 /// Build the Specter files
 pub fn build() {
     //TODO: specify files

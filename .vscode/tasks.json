@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build client",
+      "label": "build specter core",
       "type": "shell",
       "command": "cargo",
       "args": [
@@ -14,21 +14,10 @@
         "$rustc"
       ],
       "options": {
-        "cwd": "${workspaceRoot}/example_program"
+        "cwd": "${workspaceRoot}/specter_core"
       },
       "group": "build"
     },
-    {
-      "type": "cargo",
-      "subcommand": "build",
-      "problemMatcher": [
-        "$rustc"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "label": "Rust: cargo build - example_program"
-    }
+    
   ]
 }

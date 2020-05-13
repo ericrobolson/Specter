@@ -16,7 +16,6 @@ println {
     }
 }
 
-
 killer {
     input(fin)
     output(kill)

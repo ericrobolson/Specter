@@ -450,7 +450,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "specter"
+name = "specter_core"
 version = "0.1.0"
 dependencies = [
  "Inflector",
