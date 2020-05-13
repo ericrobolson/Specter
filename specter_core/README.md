@@ -1,0 +1,1 @@
+This is Specter CORE, the barebones original compiler for Nioe. The goal of this project is to create a simple compiler so that Nioe can be bootstrapped.
