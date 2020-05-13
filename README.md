@@ -1,6 +1,5 @@
-# Nioe
+# Nioe (Node - Input - Output - Execute)
 A simple node based language.
-TODO: elaborate
 
 # Code structure
 ## specter
