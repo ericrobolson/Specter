@@ -1,0 +1,6 @@
+main {    
+    output(console_out)
+    execute{
+        signal:console_out = "Hello world through console";        
+    }
+}

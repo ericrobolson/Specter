@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build specter core",
+      "label": "Compile Specter CORE",
       "type": "shell",
       "command": "cargo",
       "args": [
@@ -24,6 +24,21 @@
       "command": "./specter_core.exe",
       "args": [
         "${workspaceRoot}/hello_world"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "options": {
+        "cwd": "${workspaceRoot}/specter_core/target/debug"
+      },
+      "group": "build"
+    },
+     {
+      "label": "compile Specter",
+      "type": "shell",
+      "command": "./specter_core.exe",
+      "args": [
+        "${workspaceRoot}/specter"
       ],
       "problemMatcher": [
         "$rustc"
