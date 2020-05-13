@@ -483,19 +483,51 @@ fn alias(node: &ast::Node) -> String {
     return format!("node_{}", node.id.rust());
 }
 
-pub fn execute(ast: &Ast) {
+pub fn execute(ast: &Ast, source_path: &String) {
     let transpiled_code = generate(ast);
     let finalized_code = add_main(transpiled_code);
-    write_to_disk(finalized_code);
+    write_to_disk(finalized_code, &source_path);
 }
 
-fn write_to_disk(code: String) {
-    let component_path = format!("src/main.rs");
+fn write_to_disk(code: String, source_path: &String) {
+    let debug = false;
 
-    let mut f = fs::File::create(component_path).unwrap();
+    let gen_src_folder = "gen/src";
+    fs::create_dir_all(gen_src_folder).unwrap();
+
+    if debug {
+        println!("Writing code...");
+    }
+
+    let component_path = format!("{}/main.rs", gen_src_folder);
+    write_bytes_to_disk(&component_path, code.as_bytes());
+
+    // Write cargo stuff
+    let cargo = include_bytes!("gen_code/cargo.gen");
+    write_bytes_to_disk(&"gen/Cargo.toml".to_string(), cargo);
+
+    // Build generated code
+    env::set_current_dir(format!("{}/gen", source_path)).unwrap();
+    let output = std::process::Command::new("cargo")
+        .args(&["build"])
+        .output()
+        .expect("failed to execute");
+    if debug {
+        println!("Build output: {:?}", output);
+    }
+
+    // Copy generated executable
+    env::set_current_dir(format!("{}", source_path)).unwrap();
+    let exe_name = "nioe.exe";
+    let target_exe_name = "nioe.exe";
+    fs::copy(format!("gen\\target\\debug\\{}", exe_name), target_exe_name).unwrap();
+}
+
+fn write_bytes_to_disk(path: &String, bytes: &[u8]) {
+    let mut f = fs::File::create(path).unwrap();
     let mut file = LineWriter::new(f);
 
-    file.write_all(code.as_bytes()).unwrap();
+    file.write_all(bytes).unwrap();
 
     file.flush().unwrap();
 }

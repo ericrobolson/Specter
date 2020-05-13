@@ -1,5 +1,6 @@
 // Std defines
 use std::collections::HashMap;
+use std::env;
 use std::fs;
 
 // Pest parser
@@ -29,12 +30,21 @@ fn main() {
         2) Specify optional debug flag which shows transpiled code
     */
     println!("TODO!");
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+
+    let specter_core = args[0].clone();
+    let file_path = args[1].clone();
+
+    println!("{}", file_path);
+    env::set_current_dir(file_path).unwrap();
+
+    build(&args[1].clone());
 }
 
 /// Build the Specter files
-pub fn build() {
-    //TODO: specify files
+pub fn build(source_path: &String) {
     let ast = lexer::execute();
     analyzer::execute(&ast);
-    compiler::execute(&ast);
+    compiler::execute(&ast, &source_path);
 }

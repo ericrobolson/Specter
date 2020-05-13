@@ -18,6 +18,20 @@
       },
       "group": "build"
     },
-    
+    {
+      "label": "compile hello world",
+      "type": "shell",
+      "command": "./specter_core.exe",
+      "args": [
+        "${workspaceRoot}/hello_world"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "options": {
+        "cwd": "${workspaceRoot}/specter_core/target/debug"
+      },
+      "group": "build"
+    },
   ]
 }
