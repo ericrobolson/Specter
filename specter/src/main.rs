@@ -23,6 +23,7 @@ const FILE_TYPE: &'static str = ".nioe";
 
 /// Build the Specter files
 pub fn build() {
+    //TODO: specify files
     let ast = lexer::execute();
     analyzer::execute(&ast);
     compiler::execute(&ast);

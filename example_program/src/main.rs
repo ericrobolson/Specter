@@ -27,6 +27,7 @@ impl Nioe {
 		// Init nodes
 		let mut node_main = main::new();
 		let mut node_println = println::new();
+		let mut node_killer = killer::new();
 		
 		// Begin execution of inputless nodes
 		node_main.execute(&mut storage);
@@ -37,6 +38,7 @@ impl Nioe {
 			
 			// Node executions
 			node_println.execute(&mut storage);
+			node_killer.execute(&mut storage);
 			
 			// Check whether the program should be killed. If it's just been signalled, do one more execution pass for any outstanding stuff.
 			if storage.get("s_kill").is_some() {
@@ -126,6 +128,46 @@ impl println {
 				storage.insert("s_console_out".to_string(), vec![s_print.to_string()]);
 			}
 		}
+		// Send signal fin
+		{
+			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
+			if let Some(value_array) = storage.get_mut("s_fin") {
+				let mut vals = &mut *value_array;
+				vals.push(true.to_string());
+			}
+			// Otherwise, initialize a new entry in storage
+			else {
+				storage.insert("s_fin".to_string(), vec![true.to_string()]);
+			}
+		}
+	}
+}
+
+pub struct killer {
+	pub fin_signal_index: usize,
+}
+impl killer {
+	pub fn new() -> Self {
+		Self {
+			fin_signal_index: 0,
+		}
+	}
+	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
+		
+		//Check to see that all inputs are ready
+		// First, retrieve all relevant inputs
+		
+		let s_fin = storage.get("s_fin");
+		// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.
+		{
+			
+			if (s_fin.is_none()) || (storage.get("s_fin").is_none()) {
+				return;
+			}
+		}
+		// If we're here, that means that the node can execute. Get the current values, then increment the current message index for the nodes.
+		let s_fin = (s_fin.unwrap())[self.fin_signal_index].clone();
+		self.fin_signal_index += 1;
 		// Send signal kill
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
@@ -136,6 +178,18 @@ impl println {
 			// Otherwise, initialize a new entry in storage
 			else {
 				storage.insert("s_kill".to_string(), vec![true.to_string()]);
+			}
+		}
+		// Send signal console_out
+		{
+			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
+			if let Some(value_array) = storage.get_mut("s_console_out") {
+				let mut vals = &mut *value_array;
+				vals.push("Killer ran!".to_string());
+			}
+			// Otherwise, initialize a new entry in storage
+			else {
+				storage.insert("s_console_out".to_string(), vec!["Killer ran!".to_string()]);
 			}
 		}
 	}

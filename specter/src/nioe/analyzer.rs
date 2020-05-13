@@ -77,15 +77,21 @@ pub fn execute(ast: &Ast) {
                     )
                 }
 
+                /*
+                TODO: remove this if no longer needed. - 5/12/20
                 for reference in references {
                     let matching_output = output_map.get(&reference.id);
                     if matching_output.is_none() {
+                        println!("{:?}", output_map);
+                        continue;
+
                         panic!(
                             "Unable to properly link input with id '{}' to output at {}!",
                             reference.id, reference.metadata
                         );
                     }
                 }
+                */
             }
         }
     }

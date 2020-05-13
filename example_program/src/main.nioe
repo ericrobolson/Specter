@@ -8,10 +8,20 @@ main {
 
 println {
     input (print)
-    output (console_out, kill)    
+    output (console_out, fin)    
     execute {
         /* This is an example comment*/
         signal:console_out = print;
+        signal:fin = true;
+    }
+}
+
+
+killer {
+    input(fin)
+    output(kill)
+    execute{        
         signal:kill = true;
+        signal:console_out = "Killer ran!";
     }
 }
