@@ -1,6 +1,9 @@
-main {    
-    output(console_out)
-    execute{
-        signal:console_out = "Hello world through console";        
+
+
+echo {
+    input (std::cin)
+    output (std::cout)
+    execute {
+        signal:std::cout = cin;
     }
 }

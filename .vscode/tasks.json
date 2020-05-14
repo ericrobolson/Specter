@@ -48,5 +48,10 @@
       },
       "group": "build"
     },
+
+    {
+      "label": "test compile all",
+      "dependsOn":["Compile Specter CORE","compile hello world", "compile Specter" ]
+    },
   ]
 }

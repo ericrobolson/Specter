@@ -28,9 +28,13 @@ impl Nioe {
 		let mut node_main = main::new();
 		let mut node_println = println::new();
 		let mut node_killer = killer::new();
+		// Begin STD lib initializations
+		let mut node_std_cout = std_cout::new();
 		
 		// Begin execution of inputless nodes
 		node_main.execute(&mut storage);
+		
+		// Begin execution of inputless STD nodes
 		
 		// This is the core loop that processes node i/o
 		let mut kill_state = KillStates::NotSignalled;
@@ -40,16 +44,19 @@ impl Nioe {
 			node_println.execute(&mut storage);
 			node_killer.execute(&mut storage);
 			
+			// STD Node executions
+			node_std_cout.execute(&mut storage);
+			
 			// Check whether the program should be killed. If it's just been signalled, do one more execution pass for any outstanding stuff.
 			if storage.get("s_kill").is_some() {
 				kill_state = KillStates::Kill;
 			}
 			// Print console messages
-			let print_vals = storage.get("s_console_out");
+			let print_vals = storage.get("s_cout");
 			if print_vals.is_some() {
 				let print_vals = print_vals.unwrap();
 				for val in print_vals {println!("{:?}", val);}
-				storage.remove("s_console_out");
+				storage.remove("s_cout");
 			}
 		}
 	}
@@ -64,16 +71,16 @@ impl main {
 	}
 	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
 		
-		// Send signal console_out
+		// Send signal cout
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
-			if let Some(value_array) = storage.get_mut("s_console_out") {
+			if let Some(value_array) = storage.get_mut("s_cout") {
 				let mut vals = &mut *value_array;
 				vals.push("Hello world through console".to_string());
 			}
 			// Otherwise, initialize a new entry in storage
 			else {
-				storage.insert("s_console_out".to_string(), vec!["Hello world through console".to_string()]);
+				storage.insert("s_cout".to_string(), vec!["Hello world through console".to_string()]);
 			}
 		}
 		// Send signal print
@@ -102,30 +109,28 @@ impl println {
 	}
 	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
 		
-		//Check to see that all inputs are ready
-		// First, retrieve all relevant inputs
-		
+		// Retrieve all relevant inputs
 		let s_print = storage.get("s_print");
-		// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.
 		{
 			
-			if (s_print.is_none()) || (storage.get("s_print").is_none()) {
+			// Check to see that all inputs exist, and there are new messages in the queue
+			if (s_print.is_none() || s_print.as_ref().unwrap().len() <= self.print_signal_index) {
 				return;
 			}
 		}
 		// If we're here, that means that the node can execute. Get the current values, then increment the current message index for the nodes.
 		let s_print = (s_print.unwrap())[self.print_signal_index].clone();
 		self.print_signal_index += 1;
-		// Send signal console_out
+		// Send signal cout
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
-			if let Some(value_array) = storage.get_mut("s_console_out") {
+			if let Some(value_array) = storage.get_mut("s_cout") {
 				let mut vals = &mut *value_array;
 				vals.push(s_print.to_string());
 			}
 			// Otherwise, initialize a new entry in storage
 			else {
-				storage.insert("s_console_out".to_string(), vec![s_print.to_string()]);
+				storage.insert("s_cout".to_string(), vec![s_print.to_string()]);
 			}
 		}
 		// Send signal fin
@@ -154,14 +159,12 @@ impl killer {
 	}
 	pub fn execute(&mut self, storage: &mut HashMap<String, Vec<String>>) {
 		
-		//Check to see that all inputs are ready
-		// First, retrieve all relevant inputs
-		
+		// Retrieve all relevant inputs
 		let s_fin = storage.get("s_fin");
-		// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.
 		{
 			
-			if (s_fin.is_none()) || (storage.get("s_fin").is_none()) {
+			// Check to see that all inputs exist, and there are new messages in the queue
+			if (s_fin.is_none() || s_fin.as_ref().unwrap().len() <= self.fin_signal_index) {
 				return;
 			}
 		}
@@ -180,17 +183,59 @@ impl killer {
 				storage.insert("s_kill".to_string(), vec![true.to_string()]);
 			}
 		}
-		// Send signal console_out
+		// Send signal cout
 		{
 			// First, check if there exists a storage entry. If so, add it to the back of existing signals.
-			if let Some(value_array) = storage.get_mut("s_console_out") {
+			if let Some(value_array) = storage.get_mut("s_cout") {
 				let mut vals = &mut *value_array;
 				vals.push("Killer ran!".to_string());
 			}
 			// Otherwise, initialize a new entry in storage
 			else {
-				storage.insert("s_console_out".to_string(), vec!["Killer ran!".to_string()]);
+				storage.insert("s_cout".to_string(), vec!["Killer ran!".to_string()]);
 			}
 		}
 	}
+}
+
+// Console in
+// File open
+// File save
+
+/// STD Cout node
+pub struct std_cout {
+    pub cout_signal_index: usize,
+}
+impl std_cout {
+    pub fn new() -> Self {
+        Self {
+            cout_signal_index: 0,
+        }
+    }
+    pub fn execute(&mut self, storage: &mut std::collections::HashMap<String, Vec<String>>) {
+        loop {
+            //Check to see that all inputs are ready
+            const SIGNAL: &'static str = "std::cout";
+
+            let s_print = storage.get(SIGNAL);
+            {
+                if s_print.is_none() {
+                    return;
+                }
+
+                // Now check that the SIGNAL_INDEX is less than the current size, if so then keep processing and execute on that message
+                let s_print_collection = s_print.unwrap();
+                if s_print_collection.len() <= self.cout_signal_index {
+                    return;
+                }
+            }
+
+            // If we're here, that means that the node can execute. Get the current values, then increment the current message index for the nodes.
+            let s_print = (s_print.unwrap())[self.cout_signal_index].clone();
+            self.cout_signal_index += 1;
+
+            // Do the actual system execution
+            println!("{}", s_print);
+        }
+    }
 }

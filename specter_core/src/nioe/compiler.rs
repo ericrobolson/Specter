@@ -7,7 +7,7 @@ use std::io::{self, BufRead, LineWriter};
 use std::path::Path;
 
 const END_PROGRAM: &'static str = "kill";
-const PRINT_SIGNAL: &'static str = "s_console_out";
+const PRINT_SIGNAL: &'static str = "s_cout";
 
 fn add_main(code: String) -> String {
     let mut generator = StringGenerator::from_string(code);
@@ -134,6 +134,19 @@ fn generate(ast: &Ast) -> String {
                 ));
             }
 
+            // Create std nodes
+            generator
+                .add_line()
+                .append("// Begin STD lib initializations".to_string());
+            for (std_node_alias, std_node_struct) in
+                nioe::gen_code::nioe_std_initializations::node_declarations()
+            {
+                generator.add_line().append(format!(
+                    "let mut {} = {}::new();",
+                    std_node_alias, std_node_struct
+                ));
+            }
+
             // Trigger execution of inputless nodes
             generator
                 .add_lines(2)
@@ -142,6 +155,14 @@ fn generate(ast: &Ast) -> String {
                 generator
                     .add_line()
                     .append(format!("{}.execute(&mut storage);", alias(&n)));
+            }
+            generator
+                .add_lines(2)
+                .append("// Begin execution of inputless STD nodes".to_string());
+            for n in nioe::gen_code::nioe_std_initializations::inputless_executions() {
+                generator
+                    .add_line()
+                    .append(format!("{}.execute(&mut storage);", n));
             }
 
             // Add a simple 'loop' for processing of messages while they need to be processed
@@ -163,6 +184,15 @@ fn generate(ast: &Ast) -> String {
                     generator
                         .add_line()
                         .append(format!("{}.execute(&mut storage);", alias(&n)));
+                }
+
+                generator
+                    .add_lines(2)
+                    .append("// STD Node executions".to_string());
+                for n in nioe::gen_code::nioe_std_initializations::executions() {
+                    generator
+                        .add_line()
+                        .append(format!("{}.execute(&mut storage);", n));
                 }
 
                 // Handle end conditions
@@ -295,10 +325,7 @@ fn generate(ast: &Ast) -> String {
                             ast::Inputs::References(_, refs) => {
                                 generator
                                     .add_line()
-                                    .append("//Check to see that all inputs are ready".to_string())
-                                    .add_line()
-                                    .append("// First, retrieve all relevant inputs".to_string())
-                                    .add_line();
+                                    .append("// Retrieve all relevant inputs".to_string());
 
                                 let mut signal_aliases = vec![];
 
@@ -313,7 +340,7 @@ fn generate(ast: &Ast) -> String {
                                     ));
                                 }
 
-                                generator.add_line().append("// TODO: check to make sure that it hasn't been referenced yet using the 'MESSAGE_index' value on the node.".to_string())
+                                generator
                                     .add_line()
                                     .append("{".to_string())
                                     .indent()
@@ -332,34 +359,25 @@ fn generate(ast: &Ast) -> String {
 
                                             reference_count += 1;
 
-                                            all_entries_exist_code
-                                                .append(format!("{}.is_none()", reference.0));
-                                        }
-                                    }
+                                            let current_message_index_check = format!(
+                                                "{}.as_ref().unwrap().len() <= self.{}",
+                                                reference.0,
+                                                reference_counter(&reference.1)
+                                            );
 
-                                    let mut new_inputs_not_present_code = StringGenerator::new();
-                                    {
-                                        let mut reference_count = 0;
-                                        for reference in &refs {
-                                            if reference_count != 0 {
-                                                new_inputs_not_present_code
-                                                    .append(" || ".to_string());
-                                            }
-
-                                            reference_count += 1;
-
-                                            new_inputs_not_present_code.append(format!(
-                                                "{}.is_none()",
-                                                storage_get(&reference.rust())
+                                            all_entries_exist_code.append(format!(
+                                                "({}.is_none() || {})",
+                                                reference.0, current_message_index_check
                                             ));
                                         }
                                     }
 
                                     generator
+                                    .append("// Check to see that all inputs exist, and there are new messages in the queue".to_string())
+                                    .add_line()
                                         .append(format!(
-                                            "if ({}) || ({})",
-                                            all_entries_exist_code.to_string(),
-                                            new_inputs_not_present_code.to_string()
+                                            "if {}",
+                                            all_entries_exist_code.to_string()
                                         ))
                                         .append(" {".to_string())
                                         .indent()
@@ -412,6 +430,13 @@ fn generate(ast: &Ast) -> String {
             }
 
             generator.unindent().add_line().append("}".to_string());
+        }
+
+        // Generate std lib
+        let std_lib = vec![include_str!("gen_code/nioe_std.rs")];
+
+        for item in std_lib {
+            generator.add_lines(2).append(item.to_string());
         }
     }
 

@@ -1,26 +1,26 @@
 main {    
-    output(console_out, print)
+    output(std::cout, print)
     execute{
-        signal:console_out = "Hello world through console";
+        signal:std::cout = "Hello world through console";
         signal:print = "Hello world through signal";
     }
 }
 
 println {
     input (print)
-    output (console_out, fin)    
+    output (fin, std::cout)    
     execute {
         /* This is an example comment*/
-        signal:console_out = print;
+        signal:std::cout = print;
         signal:fin = true;
     }
 }
 
 killer {
     input(fin)
-    output(kill)
+    output(std::kill, std::cout)
     execute{        
-        signal:kill = true;
-        signal:console_out = "Killer ran!";
+        signal:std::kill = true;
+        signal:std::cout = "Killer ran!";
     }
 }

@@ -111,7 +111,7 @@ input_declaration = { input_type ~ "("
     ~ ("," ~ input)* ~ ")"}
 
 // Outputs
-output_alias = {identifier}
+output_alias = {(identifier ~ "::")? ~identifier}
 output_definition = {output_reference ~ output_alias }
 output_reference = {output_type }
 output_declaration = {(output_type ~ "(" ~ 
@@ -120,6 +120,9 @@ output_declaration = {(output_type ~ "(" ~
     ~  ")"
     ) 
   }
+
+// Namespaces
+namespace_usage = {identifier ~ ":"}
 
 // Injected code
 //v2?: injected_code = { injected_statement ~ end_statement }
@@ -165,7 +168,7 @@ node_body = {
 }
 
 // Program
-program = {(node)* ~ EOI}
+program = {(node)*}
 
 
 // System stuff
