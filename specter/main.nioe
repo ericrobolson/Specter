@@ -1,5 +1,3 @@
-
-
 echo {
     input (std::cin)
     output (std::cout)

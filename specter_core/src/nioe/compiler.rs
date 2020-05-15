@@ -211,6 +211,7 @@ fn generate(ast: &Ast) -> String {
                 }
 
                 // Handle console_out
+                /*
                 {
                     generator
                         .add_line()
@@ -234,6 +235,7 @@ fn generate(ast: &Ast) -> String {
                         .add_line()
                         .append("}".to_string());
                 }
+                */
                 // Close loop
                 generator.unindent().add_line().append("}".to_string());
             }

@@ -2,6 +2,44 @@
 // File open
 // File save
 
+// STD includes
+use std::io::Read;
+
+/// STD CIN node
+pub struct std_cin {
+    current_buffer: String,
+}
+impl std_cin {
+    pub fn new() -> Self {
+        Self {
+            current_buffer: String::new(),
+        }
+    }
+    pub fn execute(&mut self, storage: &mut std::collections::HashMap<String, Vec<String>>) {
+        //Check to see that all inputs are ready
+        //const SIGNAL: &'static str = "std::cout"; //NOTE: Eventually change to use a namespace.
+        const SIGNAL: &'static str = "s_cin"; //NOTE: Eventually change to use a namespace.
+
+        // Read CIN and create messages for it
+        println!("Reading CIN: ");
+        let mut input = String::new();
+        match std::io::stdin().read_line(&mut input) {
+            Ok(n) => {
+                // First, check if there exists a storage entry. If so, add it to the back of existing signals.
+                if let Some(value_array) = storage.get_mut(SIGNAL) {
+                    let mut vals = &mut *value_array;
+                    vals.push(input);
+                }
+                // Otherwise, initialize a new entry in storage
+                else {
+                    storage.insert(SIGNAL.to_string(), vec![input]);
+                }
+            }
+            Err(error) => println!("error reading CIN: {}", error),
+        }
+    }
+}
+
 /// STD Cout node
 pub struct std_cout {
     pub cout_signal_index: usize,
@@ -15,7 +53,8 @@ impl std_cout {
     pub fn execute(&mut self, storage: &mut std::collections::HashMap<String, Vec<String>>) {
         loop {
             //Check to see that all inputs are ready
-            const SIGNAL: &'static str = "std::cout";
+            //const SIGNAL: &'static str = "std::cout"; //NOTE: Eventually change to use a namespace.
+            const SIGNAL: &'static str = "s_cout"; //NOTE: Eventually change to use a namespace.
 
             let s_print = storage.get(SIGNAL);
             {
@@ -35,7 +74,7 @@ impl std_cout {
             self.cout_signal_index += 1;
 
             // Do the actual system execution
-            println!("{}", s_print);
+            println!("cout: {}", s_print);
         }
     }
 }

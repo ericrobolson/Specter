@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Debug Specter CORE - Compile Hello World",
             "type": "cppvsdbg",
@@ -22,6 +23,16 @@
             "args":["${workspaceRoot}/specter"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/specter_core",
+            "externalConsole": true
+        }        
+          {
+            "name": "Debug Specter - Run Specter",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "target/debug/nioe.exe",
+            "args":["${workspaceRoot}/specter"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/specter/gen",
             "externalConsole": true
         }        
     ]
