@@ -17,22 +17,7 @@
         "cwd": "${workspaceRoot}/specter_core"
       },
       "group": "build"
-    },
-    {
-      "label": "compile hello world",
-      "type": "shell",
-      "command": "./specter_core.exe",
-      "args": [
-        "${workspaceRoot}/hello_world"
-      ],
-      "problemMatcher": [
-        "$rustc"
-      ],
-      "options": {
-        "cwd": "${workspaceRoot}/specter_core/target/debug"
-      },
-      "group": "build"
-    },
+    },    
      {
       "label": "compile Specter",
       "type": "shell",
@@ -48,10 +33,54 @@
       },
       "group": "build"
     },
-
+{
+      "label": "compile example hello world",
+      "type": "shell",
+      "command": "./specter_core.exe",
+      "args": [
+        "${workspaceRoot}/examples/hello_world"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "options": {
+        "cwd": "${workspaceRoot}/specter_core/target/debug"
+      },
+      "group": "build"
+    },
+    {
+      "label": "compile example echo cin",
+      "type": "shell",
+      "command": "./specter_core.exe",
+      "args": [
+        "${workspaceRoot}/examples/echo_cin"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "options": {
+        "cwd": "${workspaceRoot}/specter_core/target/debug"
+      },
+      "group": "build"
+    },
+     {
+      "label": "compile example echo file",
+      "type": "shell",
+      "command": "./specter_core.exe",
+      "args": [
+        "${workspaceRoot}/examples/echo_file"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "options": {
+        "cwd": "${workspaceRoot}/specter_core/target/debug"
+      },
+      "group": "build"
+    },
     {
       "label": "test compile all",
-      "dependsOn":["Compile Specter CORE","compile hello world", "compile Specter" ]
+      "dependsOn":["Compile Specter CORE","compile example hello world", "compile example echo cin", "compile Specter" ]
     },
   ]
 }

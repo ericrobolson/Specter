@@ -1,0 +1,7 @@
+echo {
+    input (std::cin)
+    output (std::cout)
+    execute {
+        signal:std::cout = cin;
+    }
+}

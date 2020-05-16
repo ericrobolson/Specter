@@ -1,0 +1,24 @@
+
+main {
+    output(std::cout) 
+    execute {
+        signal:std::count = "Enter in a file to echo: ";
+    }
+}
+
+get_input {
+    input (std::cin)
+    output (file_to_echo)
+    execute {
+        signal:std::cout = std::cin;
+        signal:file_to_echo = std::cin;
+    }
+}
+
+file_echo {
+    input (file_contents)
+    output(std::cout)
+    execute {
+        signal:std::cout = file_contents;
+    }
+}

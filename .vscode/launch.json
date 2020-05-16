@@ -10,7 +10,17 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "target/debug/specter_core.exe",
-            "args":["${workspaceRoot}/hello_world"],
+            "args":["${workspaceRoot}/examples/hello_world"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/specter_core",
+            "externalConsole": true
+        },
+        {
+            "name": "Debug Specter CORE - Compile File Echo",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "target/debug/specter_core.exe",
+            "args":["${workspaceRoot}/examples/echo_file"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/specter_core",
             "externalConsole": true
@@ -24,7 +34,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/specter_core",
             "externalConsole": true
-        }        
+        },        
           {
             "name": "Debug Specter - Run Specter",
             "type": "cppvsdbg",
